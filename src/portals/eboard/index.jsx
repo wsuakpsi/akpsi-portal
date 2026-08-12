@@ -1,20 +1,30 @@
-import { Routes, Route } from 'react-router-dom'
-import { signOut } from '../../lib/auth'
-
-function Dashboard({ profile }) {
-  return (
-    <div style={{ maxWidth: 480, margin: '2rem auto' }}>
-      <h1>E-Board Portal</h1>
-      <p>Welcome, {profile.full_name} ({profile.eboard_position || 'E-Board'}).</p>
-      <button onClick={() => signOut()}>Sign out</button>
-    </div>
-  )
-}
+import { Routes, Route, Navigate } from 'react-router-dom'
+import './eboard.css'
+import Sidebar from './components/Sidebar'
+import Overview from './pages/Overview'
+import Brothers from './pages/Brothers'
+import BrotherDetail from './pages/BrotherDetail'
+import Events from './pages/Events'
+import Forms from './pages/Forms'
+import Points from './pages/Points'
+import Attendance from './pages/Attendance'
+import SheetsSync from './pages/SheetsSync'
 
 export default function EboardRouter({ profile }) {
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard profile={profile} />} />
-    </Routes>
+    <div className="eboard-app">
+      <Sidebar profile={profile} />
+      <Routes>
+        <Route path="/" element={<Navigate to="/eboard" replace />} />
+        <Route path="/eboard" element={<Overview />} />
+        <Route path="/eboard/brothers" element={<Brothers />} />
+        <Route path="/eboard/brothers/:id" element={<BrotherDetail />} />
+        <Route path="/eboard/events" element={<Events />} />
+        <Route path="/eboard/forms" element={<Forms profile={profile} />} />
+        <Route path="/eboard/points" element={<Points />} />
+        <Route path="/eboard/attendance" element={<Attendance />} />
+        <Route path="/eboard/sync" element={<SheetsSync />} />
+      </Routes>
+    </div>
   )
 }

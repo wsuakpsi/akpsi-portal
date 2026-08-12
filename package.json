@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:eboard": "VITE_PORTAL=eboard vite --port 5180",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed:eboard": "node --env-file=.env.local scripts/seed-eboard.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

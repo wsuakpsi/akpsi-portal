@@ -1,0 +1,234 @@
+.brother-app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding-bottom: 72px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+}
+
+.page {
+  padding: 1rem;
+}
+
+.page h1 {
+  font-size: 1.4rem;
+  margin: 0 0 1rem;
+}
+
+.card {
+  background: #f7f7f8;
+  border: 1px solid #e3e3e6;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.points-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.points-tile {
+  background: #fff;
+  border: 1px solid #e3e3e6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.points-tile .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.points-tile .label {
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.list-item {
+  border-bottom: 1px solid #e3e3e6;
+  padding: 0.75rem 0;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item .title {
+  font-weight: 600;
+}
+
+.list-item .meta {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.15rem;
+}
+
+.pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #e3e3e6;
+  color: #333;
+}
+
+.pill.professional { background: #dbeafe; color: #1e40af; }
+.pill.service { background: #dcfce7; color: #166534; }
+.pill.fundraising { background: #fef3c7; color: #92400e; }
+.pill.social { background: #fce7f3; color: #9d174d; }
+.pill.meeting { background: #e0e7ff; color: #3730a3; }
+.pill.rush { background: #ede9fe; color: #5b21b6; }
+.pill.extra { background: #f1f5f9; color: #334155; }
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.status-badge.present, .status-badge.going, .status-badge.attended, .status-badge.approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.excused, .status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.unexcused, .status-badge.missed, .status-badge.denied {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.btn.secondary {
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #ccc;
+}
+
+.btn.danger {
+  background: #fff;
+  color: #b91c1c;
+  border: 1px solid #f3b4b4;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #e3e3e6;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.tab.active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  background: #fff;
+  border-top: 1px solid #e3e3e6;
+  padding: 0.4rem 0 env(safe-area-inset-bottom, 0.4rem);
+}
+
+.bottom-nav a {
+  flex: 1;
+  text-align: center;
+  padding: 0.4rem 0;
+  font-size: 0.75rem;
+  color: #888;
+  text-decoration: none;
+}
+
+.bottom-nav a.active {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.empty-state {
+  color: #888;
+  font-size: 0.9rem;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.form-field {
+  margin-bottom: 0.75rem;
+}
+
+.form-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.form-field textarea,
+.form-field input[type="file"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.error-text {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
