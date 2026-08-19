@@ -8,6 +8,7 @@ const links = [
   { to: '/eboard/forms', label: 'Forms' },
   { to: '/eboard/points', label: 'Points' },
   { to: '/eboard/attendance', label: 'Attendance' },
+  { to: '/eboard/semesters', label: 'Semesters' },
   { to: '/eboard/sync', label: 'Sheets sync' },
 ]
 

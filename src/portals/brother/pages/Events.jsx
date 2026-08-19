@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
+
+const RECORD_LATE_CANCEL_URL = import.meta.env.VITE_RECORD_LATE_CANCEL_URL
+const LATE_CANCEL_WINDOW_HOURS = 24
 
 export default function Events({ profile }) {
   const [loading, setLoading] = useState(true)
@@ -82,18 +86,24 @@ export default function Events({ profile }) {
   }
 
   async function handleCancelRsvp(event) {
+    const rsvp = rsvpByEvent[event.id]
+    if (!rsvp) return
+
+    const hoursUntilStart = (new Date(event.starts_at).getTime() - Date.now()) / (1000 * 60 * 60)
+    const isLate = hoursUntilStart <= LATE_CANCEL_WINDOW_HOURS
+    if (isLate) {
+      const confirmed = window.confirm(
+        `This event starts within ${LATE_CANCEL_WINDOW_HOURS} hours. Cancelling now is a late cancel and posts a ` +
+          '-10 point penalty. Cancel anyway?'
+      )
+      if (!confirmed) return
+    }
+
     setBusyEventId(event.id)
     setError(null)
     try {
-      const { data, error: updateError } = await supabase
-        .from('rsvps')
-        .update({ status: 'cancelled' })
-        .eq('event_id', event.id)
-        .eq('member_id', profile.id)
-        .select()
-        .single()
-      if (updateError) throw updateError
-      setRsvpByEvent((prev) => ({ ...prev, [event.id]: data }))
+      await callLambda(RECORD_LATE_CANCEL_URL, { rsvpId: rsvp.id, memberId: profile.id })
+      setRsvpByEvent((prev) => ({ ...prev, [event.id]: { ...rsvp, status: 'cancelled' } }))
     } catch (err) {
       setError(err.message)
     } finally {

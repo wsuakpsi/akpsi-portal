@@ -1,0 +1,43 @@
+# ============================================================================
+# Nightly Google Sheets sync — CloudFormation snippet, NOT deployed by
+# anything in this repo. Spec 12/14 calls for a nightly cron in addition to
+# the on-demand "Run sync" button in the E-Board dashboard.
+#
+# This is a reference template only. Nothing in this repo runs
+# `aws cloudformation deploy` / `cdk deploy` against it — wire it into
+# whatever stack already deploys the other Lambdas (see lambdas/README.md
+# for the "bundle with esbuild/webpack/SAM/CDK" note; there's no existing
+# deploy pipeline checked into this repo to hang it off of yet).
+#
+# IMPORTANT: deploy this against the AKPsi chapter's own AWS account, not
+# whatever account your local `aws`/`cdk` CLI happens to be pointed at.
+# ============================================================================
+
+Resources:
+  NightlySheetsSyncRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: akpsi-nightly-sheets-sync
+      Description: Triggers nightlySheetsSync once a night for the active semester.
+      ScheduleExpression: cron(0 7 * * ? *) # 7:00 UTC — adjust for chapter's local nightly window
+      State: ENABLED
+      Targets:
+        - Id: NightlySheetsSyncTarget
+          Arn: !GetAtt NightlySheetsSyncFunction.Arn
+
+  NightlySheetsSyncPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NightlySheetsSyncFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt NightlySheetsSyncRule.Arn
+
+# ----------------------------------------------------------------------------
+# NightlySheetsSyncFunction should point at lambdas/src/nightlySheetsSync.js
+# (`handler` export) — a plain, unauthenticated entrypoint separate from
+# syncToGoogleSheets.js's API-Gateway `handler`, since EventBridge invokes
+# have no human session to authenticate and no request body to read a
+# semesterId from. It looks up the active semester itself and calls the
+# core `syncToGoogleSheets(semesterId)` function directly.
+# ----------------------------------------------------------------------------

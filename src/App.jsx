@@ -67,7 +67,7 @@ export default function App() {
     return <Suspended />
   }
 
-  if (PORTAL === 'brother' && profile.role === 'brother') {
+  if (PORTAL === 'brother' && (profile.role === 'brother' || profile.role === 'eboard')) {
     return (
       <Routes>
         <Route path="/*" element={<BrotherRouter profile={profile} />} />

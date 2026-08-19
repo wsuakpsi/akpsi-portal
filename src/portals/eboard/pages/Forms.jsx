@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { callLambda } from '../../../lib/lambdas'
 import { formatDateTime } from '../lib/queries'
+
+const REVIEW_FORM_URL = import.meta.env.VITE_REVIEW_FORM_URL
 
 export default function Forms({ profile }) {
   const [loading, setLoading] = useState(true)
@@ -41,25 +44,11 @@ export default function Forms({ profile }) {
     load()
   }, [])
 
-  async function handleMissingMeetingReview(form, status) {
+  async function handleMissingMeetingReview(form, decision) {
     setBusyId(form.id)
     setError(null)
     try {
-      const { error: updateError } = await supabase
-        .from('missing_meeting_forms')
-        .update({ status, reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
-        .eq('id', form.id)
-      if (updateError) throw updateError
-
-      if (status === 'approved') {
-        const { error: attendanceError } = await supabase
-          .from('meeting_attendance')
-          .update({ status: 'excused' })
-          .eq('event_id', form.event_id)
-          .eq('member_id', form.member_id)
-        if (attendanceError) throw attendanceError
-      }
-
+      await callLambda(REVIEW_FORM_URL, { formId: form.id, decision })
       await load()
     } catch (err) {
       setError(err.message)
@@ -77,6 +66,14 @@ export default function Forms({ profile }) {
         .update({ status, reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
         .eq('id', app.id)
       if (updateError) throw updateError
+
+      const { error: notifError } = await supabase.from('notifications').insert({
+        member_id: app.member_id,
+        title: 'Lower threshold application reviewed',
+        body: `Your lower threshold application has been ${status}.`,
+      })
+      if (notifError) throw notifError
+
       await load()
     } catch (err) {
       setError(err.message)

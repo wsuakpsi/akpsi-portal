@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "eboard-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:eboard"],
+      "port": 5180
+    }
+  ]
+}

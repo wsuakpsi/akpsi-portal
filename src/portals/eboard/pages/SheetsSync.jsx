@@ -1,36 +1,34 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { callLambda } from '../../../lib/lambdas'
+import { getActiveSemester } from '../lib/queries'
 
 const SYNC_URL = import.meta.env.VITE_SHEETS_SYNC_URL
-const SYNC_KEY = import.meta.env.VITE_SHEETS_SYNC_SERVICE_ROLE_KEY
 const LAST_SYNC_STORAGE_KEY = 'eboard.lastSheetsSyncAt'
 
 export default function SheetsSync() {
+  const [semester, setSemester] = useState(undefined)
   const [lastSyncAt, setLastSyncAt] = useState(() => localStorage.getItem(LAST_SYNC_STORAGE_KEY))
   const [running, setRunning] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
+
+  useEffect(() => {
+    getActiveSemester().then(setSemester)
+  }, [])
 
   async function handleRunSync() {
     setRunning(true)
     setError(null)
     setResult(null)
     try {
-      if (!SYNC_URL) throw new Error('VITE_SHEETS_SYNC_URL is not configured.')
+      if (!semester) throw new Error('No active semester to sync.')
 
-      const res = await fetch(SYNC_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': SYNC_KEY || '',
-        },
-      })
-
-      if (!res.ok) throw new Error(`Sync failed: ${res.status} ${res.statusText}`)
+      const res = await callLambda(SYNC_URL, { semesterId: semester.id })
 
       const now = new Date().toISOString()
       localStorage.setItem(LAST_SYNC_STORAGE_KEY, now)
       setLastSyncAt(now)
-      setResult('Sync triggered successfully.')
+      setResult(`Synced "${res.sheetTitle}" — ${res.rowsWritten} rows written.`)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -47,6 +45,10 @@ export default function SheetsSync() {
         <table>
           <tbody>
             <tr>
+              <th>Active semester</th>
+              <td>{semester === undefined ? 'Loading...' : semester ? semester.name : 'None active'}</td>
+            </tr>
+            <tr>
               <th>Last sync</th>
               <td>{lastSyncAt ? new Date(lastSyncAt).toLocaleString() : 'Never run this session'}</td>
             </tr>
@@ -55,12 +57,13 @@ export default function SheetsSync() {
         {error && <p className="error-text">{error}</p>}
         {result && <p className="note-text">{result}</p>}
         <div style={{ marginTop: '0.75rem' }}>
-          <button className="btn" disabled={running} onClick={handleRunSync}>
+          <button className="btn" disabled={running || !semester} onClick={handleRunSync}>
             {running ? 'Running...' : 'Run sync'}
           </button>
         </div>
         <p className="note-text">
-          Calls the syncToGoogleSheets Lambda via API Gateway ({SYNC_URL || 'VITE_SHEETS_SYNC_URL not set'}).
+          Overwrites the "{semester?.name || 'active semester'}" tab with current standings. An archive snapshot is
+          appended automatically when end-of-semester standing is calculated.
         </p>
       </div>
     </div>

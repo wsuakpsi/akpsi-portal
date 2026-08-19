@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
+import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
 
 const CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra', 'meeting']
+const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
+const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
 
 function AddEventForm({ semester, onClose, onAdded }) {
   const [name, setName] = useState('')
@@ -163,12 +167,30 @@ export default function Events() {
     load()
   }, [])
 
-  async function updateStatus(event, status) {
+  async function handleMarkComplete(event) {
     setBusyEventId(event.id)
     setError(null)
     try {
-      const { error: updateError } = await supabase.from('events').update({ status }).eq('id', event.id)
-      if (updateError) throw updateError
+      await callLambda(COMPLETE_EVENT_URL, { eventId: event.id })
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusyEventId(null)
+    }
+  }
+
+  async function handleCancel(event) {
+    const confirmed = window.confirm(
+      `Cancel "${event.name}"? Any approved missing-meeting forms tied to it will be voided and affected ` +
+        'brothers notified. This cannot be undone.'
+    )
+    if (!confirmed) return
+
+    setBusyEventId(event.id)
+    setError(null)
+    try {
+      await callLambda(CANCEL_EVENT_URL, { eventId: event.id })
       await load()
     } catch (err) {
       setError(err.message)
@@ -212,7 +234,7 @@ export default function Events() {
                     const isBusy = busyEventId === event.id
                     return (
                       <tr key={event.id}>
-                        <td>{event.name}</td>
+                        <td><Link to={`/eboard/events/${event.id}`}>{event.name}</Link></td>
                         <td><span className={`pill ${event.category}`}>{event.category}</span></td>
                         <td>{formatDateTime(event.starts_at)}</td>
                         <td><span className={`status-badge ${event.status}`}>{event.status}</span></td>
@@ -227,14 +249,14 @@ export default function Events() {
                               <button
                                 className="btn small"
                                 disabled={isBusy}
-                                onClick={() => updateStatus(event, 'completed')}
+                                onClick={() => handleMarkComplete(event)}
                               >
                                 Mark complete
                               </button>
                               <button
                                 className="btn small danger"
                                 disabled={isBusy}
-                                onClick={() => updateStatus(event, 'cancelled')}
+                                onClick={() => handleCancel(event)}
                               >
                                 Cancel
                               </button>
