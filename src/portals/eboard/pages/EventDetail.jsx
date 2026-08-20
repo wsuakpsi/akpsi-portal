@@ -11,6 +11,7 @@ const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
 const GENERATE_CHECKIN_TOKEN_URL = import.meta.env.VITE_GENERATE_CHECKIN_TOKEN_URL
 const RECORD_ATTENDANCE_URL = import.meta.env.VITE_RECORD_ATTENDANCE_URL
 const REMOVE_ATTENDANCE_URL = import.meta.env.VITE_REMOVE_ATTENDANCE_URL
+const BROTHER_PORTAL_URL = import.meta.env.VITE_BROTHER_PORTAL_URL
 
 function RemoveAttendanceForm({ member, onClose, onRemoved }) {
   const [note, setNote] = useState('')
@@ -65,8 +66,9 @@ function CheckInQr({ eventId }) {
     setState('loading')
     setError(null)
     try {
+      if (!BROTHER_PORTAL_URL) throw new Error('VITE_BROTHER_PORTAL_URL is not configured')
       const res = await callLambda(GENERATE_CHECKIN_TOKEN_URL, { eventId })
-      const url = `${window.location.origin}/brother/checkin?token=${encodeURIComponent(res.token)}`
+      const url = `${BROTHER_PORTAL_URL}/brother/checkin?token=${encodeURIComponent(res.token)}`
       const dataUrl = await QRCode.toDataURL(url, { width: 320, margin: 1 })
       setCheckinUrl(url)
       setQrDataUrl(dataUrl)
