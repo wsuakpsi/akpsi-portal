@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
+import Topbar from '../components/Topbar'
 
 const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social']
 
@@ -20,6 +21,7 @@ export default function Home({ profile }) {
       setError(null)
       try {
         const semester = await getActiveSemester()
+
         if (!semester) {
           if (!cancelled) {
             setPointTotals({})
@@ -90,45 +92,54 @@ export default function Home({ profile }) {
 
   if (loading) return <div className="page">Loading...</div>
 
-  return (
-    <div className="page">
-      <h1>Hi, {profile.full_name.split(' ')[0]}</h1>
-      {error && <p className="error-text">{error}</p>}
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
-      <div className="card">
-        <h2>Points this semester</h2>
-        <div className="points-grid">
+  return (
+    <div>
+      <Topbar profile={profile}>
+        <div className="home-greeting">{greeting},</div>
+        <div className="home-name">{profile.full_name}</div>
+      </Topbar>
+
+      <div className="page">
+        {error && <p className="error-text">{error}</p>}
+
+        <div className="standing-card">
+          <div className="standing-row">
+            <span className="standing-label">Points this semester</span>
+          </div>
           {POINT_CATEGORIES.map((cat) => (
-            <div className="points-tile" key={cat}>
-              <div className="value">{pointTotals[cat] ?? 0}</div>
-              <div className="label">{cat}</div>
+            <div className="progress-row" key={cat}>
+              <span className="progress-cat">{cat[0].toUpperCase() + cat.slice(1)}</span>
+              <span className="progress-pts">{pointTotals[cat] ?? 0} pts</span>
             </div>
           ))}
         </div>
-      </div>
 
-      <div className="card">
-        <h2>Upcoming events</h2>
+        <div className="section-head">Upcoming events</div>
         {upcomingEvents.length === 0 && <p className="empty-state">No upcoming events.</p>}
         {upcomingEvents.map((event) => (
-          <div className="list-item" key={event.id}>
-            <div className="title">{event.name}</div>
-            <div className="meta">
-              <span className={`pill ${event.category}`}>{event.category}</span>{' '}
-              {formatDateTime(event.starts_at)} &middot; {event.points_value} pts
+          <div className="event-card" key={event.id}>
+            <div className="event-left">
+              <span className={`event-type-pill pill-${event.category}`}>{event.category}</span>
+              <div className="event-name">{event.name}</div>
+              <div className="event-date">{formatDateTime(event.starts_at)}</div>
             </div>
+            <div className="event-pts">+{event.points_value} pts</div>
           </div>
         ))}
-      </div>
 
-      <div className="card">
-        <h2>Recent meeting attendance</h2>
+        <div className="section-head">Recent attendance</div>
         {recentAttendance.length === 0 && <p className="empty-state">No meeting attendance yet.</p>}
         {recentAttendance.map((row) => (
-          <div className="list-item" key={row.id}>
-            <div className="title">{formatDate(row.events.starts_at)}</div>
-            <div className="meta">
-              <span className={`status-badge ${row.status}`}>{row.status}</span>
+          <div className="attend-card" key={row.id}>
+            <div className="attend-row">
+              <div>
+                <div className="attend-label">{row.events.name || 'Chapter meeting'}</div>
+                <div className="attend-sub">{formatDateTime(row.events.starts_at)}</div>
+              </div>
+              <span className={`badge-${row.status === 'present' ? 'present' : 'absent'}`}>{row.status}</span>
             </div>
           </div>
         ))}

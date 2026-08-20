@@ -4,8 +4,7 @@ const links = [
   { to: '/brother', label: 'Home', end: true },
   { to: '/brother/events', label: 'Events' },
   { to: '/brother/attendance', label: 'Attendance' },
-  { to: '/brother/notifications', label: 'Notifications' },
-  { to: '/brother/profile', label: 'Profile' },
+  { to: '/brother/leaderboard', label: 'Leaderboard' },
 ]
 
 export default function BottomNav() {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { formatDateTime } from '../lib/queries'
+import Topbar from '../components/Topbar'
 
 function ExcuseForm({ event, onClose, onSubmitted }) {
   const [reason, setReason] = useState('')
@@ -125,13 +126,16 @@ export default function Attendance({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.id])
 
-  if (loading) return <div className="page">Loading...</div>
-
   return (
-    <div className="page">
-      <h1>Attendance</h1>
+    <div>
+      <Topbar profile={profile}>
+        <div className="topbar-title">Attendance</div>
+      </Topbar>
+      <div className="page">
+      {loading && <p className="empty-state">Loading...</p>}
       {error && <p className="error-text">{error}</p>}
 
+      {!loading && (
       <div className="tabs">
         <button
           className={`tab ${tab === 'events' ? 'active' : ''}`}
@@ -152,8 +156,9 @@ export default function Attendance({ profile }) {
           Meetings
         </button>
       </div>
+      )}
 
-      {tab === 'events' && (
+      {!loading && tab === 'events' && (
         <div className="card">
           {eventAttendance.length === 0 && <p className="empty-state">No attendance records yet.</p>}
           {eventAttendance.map((row) => (
@@ -168,7 +173,7 @@ export default function Attendance({ profile }) {
         </div>
       )}
 
-      {tab === 'meetings' && (
+      {!loading && tab === 'meetings' && (
         <div className="card">
           {meetingAttendance.length === 0 && <p className="empty-state">No meeting records yet.</p>}
           {meetingAttendance.map((row) => (
@@ -206,6 +211,7 @@ export default function Attendance({ profile }) {
           }}
         />
       )}
+      </div>
     </div>
   )
 }

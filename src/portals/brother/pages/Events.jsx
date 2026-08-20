@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
+import Topbar from '../components/Topbar'
 
 const RECORD_LATE_CANCEL_URL = import.meta.env.VITE_RECORD_LATE_CANCEL_URL
 const LATE_CANCEL_WINDOW_HOURS = 24
@@ -15,6 +16,7 @@ export default function Events({ profile }) {
   const [attendedEventIds, setAttendedEventIds] = useState(new Set())
   const [meetingAttendanceByEvent, setMeetingAttendanceByEvent] = useState({})
   const [busyEventId, setBusyEventId] = useState(null)
+  const [view, setView] = useState('upcoming')
 
   async function load() {
     setLoading(true)
@@ -155,27 +157,53 @@ export default function Events({ profile }) {
     return null
   }
 
-  if (loading) return <div className="page">Loading...</div>
+  const now = new Date()
+  const upcomingEvents = events.filter((e) => new Date(e.starts_at) > now)
+  const pastEvents = events
+    .filter((e) => new Date(e.starts_at) <= now)
+    .slice()
+    .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
+  const visibleEvents = view === 'upcoming' ? upcomingEvents : pastEvents
 
   return (
-    <div className="page">
-      <h1>Events</h1>
-      {error && <p className="error-text">{error}</p>}
+    <div>
+      <Topbar profile={profile}>
+        <div className="topbar-title">Events</div>
+      </Topbar>
+      <div className="page">
+        {loading && <p className="empty-state">Loading...</p>}
+        {error && <p className="error-text">{error}</p>}
 
-      {events.length === 0 && <p className="empty-state">No events this semester.</p>}
-
-      <div className="card">
-        {events.map((event) => (
-          <div className="list-item" key={event.id}>
-            <div className="title">{event.name}</div>
-            <div className="meta">
-              <span className={`pill ${event.category}`}>{event.category}</span>{' '}
-              {formatDateTime(event.starts_at)} &middot; {event.points_value} pts
-              {event.location && <> &middot; {event.location}</>}
-            </div>
-            <div style={{ marginTop: '0.5rem' }}>{renderAction(event)}</div>
+        {!loading && (
+          <div className="tabs">
+            <button className={`tab ${view === 'upcoming' ? 'active' : ''}`} onClick={() => setView('upcoming')}>
+              Upcoming
+            </button>
+            <button className={`tab ${view === 'past' ? 'active' : ''}`} onClick={() => setView('past')}>
+              Past
+            </button>
           </div>
-        ))}
+        )}
+
+        {!loading && visibleEvents.length === 0 && (
+          <p className="empty-state">No {view} events.</p>
+        )}
+
+        {!loading && visibleEvents.length > 0 && (
+          <div className="card">
+            {visibleEvents.map((event) => (
+              <div className="list-item" key={event.id}>
+                <div className="title">{event.name}</div>
+                <div className="meta">
+                  <span className={`pill ${event.category}`}>{event.category}</span>{' '}
+                  {formatDateTime(event.starts_at)} &middot; {event.points_value} pts
+                  {event.location && <> &middot; {event.location}</>}
+                </div>
+                <div style={{ marginTop: '0.5rem' }}>{renderAction(event)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

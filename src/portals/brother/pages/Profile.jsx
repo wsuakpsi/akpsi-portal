@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { signOut } from '../../../lib/auth'
 import { getActiveSemester } from '../lib/queries'
+import Topbar from '../components/Topbar'
 
 // Spec 8.2: "Proof upload is mandatory — Lambda rejects submissions without
 // a proof_url." The DB already enforces this (proof_url NOT NULL since
@@ -148,8 +149,11 @@ export default function Profile({ profile }) {
   const canApply = !application || application.status === 'denied'
 
   return (
-    <div className="page">
-      <h1>Profile</h1>
+    <div>
+      <Topbar profile={profile}>
+        <div className="topbar-title">Profile</div>
+      </Topbar>
+      <div className="page">
       {error && <p className="error-text">{error}</p>}
 
       <div className="card">
@@ -238,6 +242,7 @@ export default function Profile({ profile }) {
       <button className="btn secondary" onClick={() => signOut()}>
         Sign out
       </button>
+      </div>
     </div>
   )
 }
