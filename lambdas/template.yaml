@@ -147,7 +147,7 @@ Resources:
         Nightly:
           Type: ScheduleV2
           Properties:
-            Enabled: !If [NightlySyncEnabled, true, false]
+            State: !If [NightlySyncEnabled, 'ENABLED', 'DISABLED']
             ScheduleExpression: cron(0 7 * * ? *) # 7:00 UTC — adjust for the chapter's local nightly window
 
 Outputs:

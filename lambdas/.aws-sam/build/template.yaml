@@ -1,0 +1,254 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "AKPsi Chapter Portal \u2014 all API Gateway-fronted Lambdas plus the\
+  \ nightly Sheets sync cron. One shared HTTP API; every function gets its own route.\
+  \ Deploy with `sam deploy --guided` from the lambdas/ directory.\n"
+Parameters:
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL (same as VITE_SUPABASE_URL)
+  SupabaseServiceRoleKey:
+    Type: String
+    NoEcho: true
+    Description: "Supabase service role key \u2014 server-side only, never expose\
+      \ to the frontend"
+  QrCheckinJwtSecret:
+    Type: String
+    NoEcho: true
+    Description: "Secret for signing/verifying QR check-in tokens. Make up a new random\
+      \ string \u2014 do not reuse a Supabase-issued secret."
+  GoogleServiceAccountJson:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Full Google service account credentials JSON, as a single-line string.
+      Leave blank to skip Sheets sync for now.
+  GoogleSheetsSpreadsheetId:
+    Type: String
+    Default: ''
+    Description: Target spreadsheet ID. Leave blank to skip Sheets sync for now.
+  EnableNightlySync:
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'false'
+    Description: Set to true once GoogleServiceAccountJson/GoogleSheetsSpreadsheetId
+      are filled in, to turn on the nightly EventBridge cron.
+Conditions:
+  NightlySyncEnabled:
+    Fn::Equals:
+    - Ref: EnableNightlySync
+    - 'true'
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 15
+    MemorySize: 256
+    CodeUri: .
+    Environment:
+      Variables:
+        SUPABASE_URL:
+          Ref: SupabaseUrl
+        SUPABASE_SERVICE_ROLE_KEY:
+          Ref: SupabaseServiceRoleKey
+        QR_CHECKIN_JWT_SECRET:
+          Ref: QrCheckinJwtSecret
+        GOOGLE_SERVICE_ACCOUNT_JSON:
+          Ref: GoogleServiceAccountJson
+        GOOGLE_SHEETS_SPREADSHEET_ID:
+          Ref: GoogleSheetsSpreadsheetId
+Resources:
+  CompleteEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/completeEvent.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /complete-event
+            Method: POST
+      CodeUri: CompleteEventFunction
+    Metadata:
+      SamResourceId: CompleteEventFunction
+  CancelEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/cancelEvent.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /cancel-event
+            Method: POST
+      CodeUri: CancelEventFunction
+    Metadata:
+      SamResourceId: CancelEventFunction
+  PostManualPointAdjustmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/postManualPointAdjustment.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /post-adjustment
+            Method: POST
+      CodeUri: PostManualPointAdjustmentFunction
+    Metadata:
+      SamResourceId: PostManualPointAdjustmentFunction
+  ReviewMissingMeetingFormFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/reviewMissingMeetingForm.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /review-form
+            Method: POST
+      CodeUri: ReviewMissingMeetingFormFunction
+    Metadata:
+      SamResourceId: ReviewMissingMeetingFormFunction
+  CalculateEndOfSemesterStandingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/calculateEndOfSemesterStanding.handler
+      Timeout: 60
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /calculate-standing
+            Method: POST
+      CodeUri: CalculateEndOfSemesterStandingFunction
+    Metadata:
+      SamResourceId: CalculateEndOfSemesterStandingFunction
+  CreateSemesterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/createSemester.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /create-semester
+            Method: POST
+      CodeUri: CreateSemesterFunction
+    Metadata:
+      SamResourceId: CreateSemesterFunction
+  GenerateCheckInTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/generateCheckInToken.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /generate-checkin-token
+            Method: POST
+      CodeUri: GenerateCheckInTokenFunction
+    Metadata:
+      SamResourceId: GenerateCheckInTokenFunction
+  RecordAttendanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/recordAttendance.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /record-attendance
+            Method: POST
+      CodeUri: RecordAttendanceFunction
+    Metadata:
+      SamResourceId: RecordAttendanceFunction
+  RecordAttendanceQrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/recordAttendance.qrHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /record-attendance-qr
+            Method: POST
+      CodeUri: RecordAttendanceQrFunction
+    Metadata:
+      SamResourceId: RecordAttendanceQrFunction
+  RemoveAttendanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/removeAttendance.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /remove-attendance
+            Method: POST
+      CodeUri: RemoveAttendanceFunction
+    Metadata:
+      SamResourceId: RemoveAttendanceFunction
+  RecordLateCancelFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/recordLateCancel.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /record-late-cancel
+            Method: POST
+      CodeUri: RecordLateCancelFunction
+    Metadata:
+      SamResourceId: RecordLateCancelFunction
+  SyncToGoogleSheetsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/syncToGoogleSheets.handler
+      Timeout: 30
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /sync-sheets
+            Method: POST
+      CodeUri: SyncToGoogleSheetsFunction
+    Metadata:
+      SamResourceId: SyncToGoogleSheetsFunction
+  NightlySheetsSyncFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/nightlySheetsSync.handler
+      Timeout: 30
+      Events:
+        Nightly:
+          Type: ScheduleV2
+          Properties:
+            State:
+              Fn::If:
+              - NightlySyncEnabled
+              - ENABLED
+              - DISABLED
+            ScheduleExpression: cron(0 7 * * ? *)
+      CodeUri: NightlySheetsSyncFunction
+    Metadata:
+      SamResourceId: NightlySheetsSyncFunction
+Outputs:
+  ApiBaseUrl:
+    Description: "Base URL \u2014 append each function's path below to get the VITE_*_URL\
+      \ value for .env.local"
+    Value:
+      Fn::Sub: https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  RouteMap:
+    Description: Path -> env var mapping (base URL + path). See DEPLOY.md for the
+      full table.
+    Value: '/complete-event=VITE_COMPLETE_EVENT_URL, /cancel-event=VITE_CANCEL_EVENT_URL,
+      /post-adjustment=VITE_POST_ADJUSTMENT_URL, /review-form=VITE_REVIEW_FORM_URL,
+      /calculate-standing=VITE_CALCULATE_STANDING_URL, /create-semester=VITE_CREATE_SEMESTER_URL,
+      /generate-checkin-token=VITE_GENERATE_CHECKIN_TOKEN_URL, /record-attendance=VITE_RECORD_ATTENDANCE_URL,
+      /record-attendance-qr=VITE_RECORD_ATTENDANCE_QR_URL, /remove-attendance=VITE_REMOVE_ATTENDANCE_URL,
+      /record-late-cancel=VITE_RECORD_LATE_CANCEL_URL, /sync-sheets=VITE_SHEETS_SYNC_URL
+
+      '
