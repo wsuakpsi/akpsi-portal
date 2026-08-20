@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester, formatDateTime } from '../lib/queries'
+import { getActiveSemester } from '../lib/queries'
 
 const CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra', 'meeting']
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
@@ -221,9 +221,77 @@ export default function Events() {
 
   if (loading) return <div className="eboard-main">Loading...</div>
 
+  const upcoming = filteredEvents.filter((e) => e.status === 'scheduled')
+  const completed = filteredEvents.filter((e) => e.status === 'completed')
+  const cancelled = filteredEvents.filter((e) => e.status === 'cancelled')
+
+  function renderEventRow(event) {
+    const isBusy = busyEventId === event.id
+    const date = new Date(event.starts_at)
+    return (
+      <div className="event-row" key={event.id}>
+        <div className="date-block">
+          <div className="date-month">{date.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</div>
+          <div className="date-day">{date.getDate()}</div>
+          <div className="date-weekday">{date.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+        </div>
+        <div className="event-row-body">
+          <div className="event-row-title">
+            <span>{event.name}</span>
+            <span className={`pill ${event.category}`}>{event.category}</span>
+            {event.is_required && <span className="status-badge required">Required</span>}
+            <span className={`status-badge ${event.status}`}>{event.status}</span>
+          </div>
+          <div className="event-row-sub">
+            {date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} &middot; {event.location || 'TBD'}
+            {event.points_value ? ` · +${event.points_value} pts` : ''}
+          </div>
+        </div>
+        <div className="event-row-stats">
+          {event.status === 'completed' ? (
+            <>
+              <div className="stat-num">{attendanceCounts[event.id] || 0}</div>
+              <div className="stat-label">Attended</div>
+            </>
+          ) : event.status === 'cancelled' ? (
+            <div className="stat-label">Voided</div>
+          ) : (
+            <>
+              <div className="stat-num">{rsvpCounts[event.id] || 0}</div>
+              <div className="stat-label">RSVP'd</div>
+            </>
+          )}
+        </div>
+        <div className="event-row-actions">
+          {event.status === 'scheduled' && (
+            <>
+              <button className="btn small secondary" disabled={isBusy} onClick={() => handleMarkComplete(event)}>
+                Mark complete
+              </button>
+              <Link className="btn small secondary" to={`/eboard/events/${event.id}`}>View</Link>
+              <button className="btn small danger" disabled={isBusy} onClick={() => handleCancel(event)}>
+                Cancel
+              </button>
+            </>
+          )}
+          {event.status !== 'scheduled' && (
+            <Link className="btn small secondary" to={`/eboard/events/${event.id}`}>View</Link>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="eboard-main">
-      <h1>Events</h1>
+      <div className="page-header">
+        <div>
+          <h1>Events</h1>
+          <p className="page-subtitle">
+            {semester ? semester.name : 'No active semester'} &middot; {events.length} events
+          </p>
+        </div>
+      </div>
       {error && <p className="error-text">{error}</p>}
 
       {!semester && <p className="empty-state">No active semester configured.</p>}
@@ -233,7 +301,7 @@ export default function Events() {
           <div className="toolbar">
             <input
               type="text"
-              placeholder="Search by name..."
+              placeholder="Search events"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
             />
@@ -253,68 +321,35 @@ export default function Events() {
               {showPast ? 'Hide past events' : 'Show past events'}
             </button>
             <div className="spacer" />
-            <button className="btn" onClick={() => setShowAddForm(true)}>Add event</button>
+            <button className="btn" onClick={() => setShowAddForm(true)}>+ Add event</button>
           </div>
 
-          <div className="card">
-            {filteredEvents.length === 0 && (
+          {filteredEvents.length === 0 && (
+            <div className="card">
               <p className="empty-state">
                 {events.length === 0 ? 'No events this semester.' : 'No events match these filters.'}
               </p>
-            )}
-            {filteredEvents.length > 0 && (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>RSVPs / Attendance</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEvents.map((event) => {
-                    const isBusy = busyEventId === event.id
-                    return (
-                      <tr key={event.id}>
-                        <td><Link to={`/eboard/events/${event.id}`}>{event.name}</Link></td>
-                        <td><span className={`pill ${event.category}`}>{event.category}</span></td>
-                        <td>{formatDateTime(event.starts_at)}</td>
-                        <td><span className={`status-badge ${event.status}`}>{event.status}</span></td>
-                        <td>
-                          {event.status === 'completed'
-                            ? `${attendanceCounts[event.id] || 0} attended`
-                            : `${rsvpCounts[event.id] || 0} going`}
-                        </td>
-                        <td>
-                          {event.status === 'scheduled' && (
-                            <div style={{ display: 'flex', gap: '0.4rem' }}>
-                              <button
-                                className="btn small"
-                                disabled={isBusy}
-                                onClick={() => handleMarkComplete(event)}
-                              >
-                                Mark complete
-                              </button>
-                              <button
-                                className="btn small danger"
-                                disabled={isBusy}
-                                onClick={() => handleCancel(event)}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+            </div>
+          )}
+
+          {upcoming.length > 0 && (
+            <>
+              <div className="section-label">Upcoming</div>
+              <div className="card">{upcoming.map(renderEventRow)}</div>
+            </>
+          )}
+          {completed.length > 0 && (
+            <>
+              <div className="section-label">Completed</div>
+              <div className="card">{completed.map(renderEventRow)}</div>
+            </>
+          )}
+          {cancelled.length > 0 && (
+            <>
+              <div className="section-label">Cancelled</div>
+              <div className="card">{cancelled.map(renderEventRow)}</div>
+            </>
+          )}
         </>
       )}
 

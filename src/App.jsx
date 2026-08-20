@@ -6,6 +6,7 @@ import { getMyProfile, signOut } from './lib/auth'
 import Login from './pages/Login'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
+import CheckInQrPage from './portals/eboard/pages/CheckInQrPage'
 
 const PORTAL = import.meta.env.VITE_PORTAL
 
@@ -72,6 +73,7 @@ export default function App() {
   } else if (PORTAL === 'eboard' && profile.role === 'eboard') {
     content = (
       <Routes>
+        <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />
         <Route path="/*" element={<EboardRouter profile={profile} />} />
       </Routes>
     )

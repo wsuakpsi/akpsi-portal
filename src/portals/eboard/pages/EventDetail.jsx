@@ -55,26 +55,29 @@ function RemoveAttendanceForm({ member, onClose, onRemoved }) {
   )
 }
 
-function CheckInQr({ eventId }) {
-  const [state, setState] = useState('idle') // idle | loading | ready | error
-  const [qrDataUrl, setQrDataUrl] = useState(null)
-  const [checkinUrl, setCheckinUrl] = useState(null)
-  const [expiresAt, setExpiresAt] = useState(null)
+function CheckInQr({ eventId, eventName }) {
+  const [state, setState] = useState('idle') // idle | loading | error
   const [error, setError] = useState(null)
 
-  async function handleGenerate() {
+  async function handleOpen() {
     setState('loading')
     setError(null)
+    // Open the tab synchronously, before the await below, so browsers (Safari
+    // in particular) still count it as triggered directly by the click and
+    // don't silently block it — then navigate that tab once the token is ready.
+    const tab = window.open('', '_blank')
     try {
       if (!BROTHER_PORTAL_URL) throw new Error('VITE_BROTHER_PORTAL_URL is not configured')
       const res = await callLambda(GENERATE_CHECKIN_TOKEN_URL, { eventId })
-      const url = `${BROTHER_PORTAL_URL}/brother/checkin?token=${encodeURIComponent(res.token)}`
-      const dataUrl = await QRCode.toDataURL(url, { width: 320, margin: 1 })
-      setCheckinUrl(url)
-      setQrDataUrl(dataUrl)
-      setExpiresAt(res.expiresAt)
-      setState('ready')
+      const params = new URLSearchParams({ token: res.token, expiresAt: res.expiresAt, eventName: eventName || '' })
+      if (tab) {
+        tab.location.href = `/eboard/checkin-qr?${params.toString()}`
+      } else {
+        throw new Error('Popup blocked — allow popups for this site to show the QR code.')
+      }
+      setState('idle')
     } catch (err) {
+      if (tab) tab.close()
       setError(err.message)
       setState('error')
       toast.error(`Could not generate check-in QR: ${err.message}`)
@@ -84,27 +87,11 @@ function CheckInQr({ eventId }) {
   return (
     <div className="card">
       <h2>Check-in QR</h2>
-      {state === 'idle' && (
-        <button className="btn" onClick={handleGenerate}>
-          Generate check-in QR
-        </button>
-      )}
-      {state === 'loading' && <p className="empty-state">Generating...</p>}
-      {state === 'error' && (
-        <>
-          <p className="error-text">{error}</p>
-          <button className="btn" onClick={handleGenerate}>Try again</button>
-        </>
-      )}
-      {state === 'ready' && (
-        <>
-          <img src={qrDataUrl} alt="Check-in QR code" style={{ maxWidth: 320, width: '100%' }} />
-          <p className="note-text">
-            Expires {new Date(expiresAt).toLocaleTimeString()}. <a href={checkinUrl}>{checkinUrl}</a>
-          </p>
-          <button className="btn small secondary" onClick={handleGenerate}>Regenerate</button>
-        </>
-      )}
+      <p className="note-text">Opens in a new tab you can put fullscreen for scanning.</p>
+      <button className="btn" disabled={state === 'loading'} onClick={handleOpen}>
+        {state === 'loading' ? 'Opening...' : 'Open check-in QR'}
+      </button>
+      {state === 'error' && <p className="error-text">{error}</p>}
     </div>
   )
 }
@@ -178,6 +165,8 @@ export default function EventDetail() {
   const [attendance, setAttendance] = useState([])
   const [removeTarget, setRemoveTarget] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [rsvpSearch, setRsvpSearch] = useState('')
+  const [attendanceSearch, setAttendanceSearch] = useState('')
 
   async function load() {
     setLoading(true)
@@ -253,6 +242,12 @@ export default function EventDetail() {
   if (!event) return <div className="eboard-main">Event not found.</div>
 
   const attendedIds = new Set(attendance.map((a) => a.member_id))
+  const filteredRsvps = rsvps.filter((r) =>
+    (r.members?.full_name || '').toLowerCase().includes(rsvpSearch.trim().toLowerCase())
+  )
+  const filteredAttendance = attendance.filter((a) =>
+    (a.members?.full_name || '').toLowerCase().includes(attendanceSearch.trim().toLowerCase())
+  )
 
   return (
     <div className="eboard-main">
@@ -279,7 +274,7 @@ export default function EventDetail() {
 
       {event.status === 'scheduled' && (
         <>
-          <CheckInQr eventId={id} />
+          <CheckInQr eventId={id} eventName={event.name} />
           <ManualCheckIn eventId={id} alreadyAttendedIds={attendedIds} onCheckedIn={load} />
         </>
       )}
@@ -288,17 +283,30 @@ export default function EventDetail() {
         <h2>RSVPs ({rsvps.length})</h2>
         {rsvps.length === 0 && <p className="empty-state">No RSVPs yet.</p>}
         {rsvps.length > 0 && (
-          <table>
-            <thead><tr><th>Name</th><th>Status</th></tr></thead>
-            <tbody>
-              {rsvps.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.members?.full_name || '-'}</td>
-                  <td><span className={`status-badge ${r.status}`}>{r.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="toolbar">
+              <input
+                type="text"
+                placeholder="Search RSVPs by name"
+                value={rsvpSearch}
+                onChange={(e) => setRsvpSearch(e.target.value)}
+              />
+            </div>
+            {filteredRsvps.length === 0 && <p className="empty-state">No RSVPs match "{rsvpSearch}".</p>}
+            {filteredRsvps.length > 0 && (
+              <table>
+                <thead><tr><th>Name</th><th>Status</th></tr></thead>
+                <tbody>
+                  {filteredRsvps.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.members?.full_name || '-'}</td>
+                      <td><span className={`status-badge ${r.status}`}>{r.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
 
@@ -306,25 +314,38 @@ export default function EventDetail() {
         <h2>Attendance ({attendance.length})</h2>
         {attendance.length === 0 && <p className="empty-state">No one checked in yet.</p>}
         {attendance.length > 0 && (
-          <table>
-            <thead><tr><th>Name</th><th>Method</th><th></th></tr></thead>
-            <tbody>
-              {attendance.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.members?.full_name || '-'}</td>
-                  <td>{a.check_in_method || '-'}</td>
-                  <td>
-                    <button
-                      className="btn small danger"
-                      onClick={() => setRemoveTarget({ id: a.member_id, full_name: a.members?.full_name || '-' })}
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="toolbar">
+              <input
+                type="text"
+                placeholder="Search attendance by name"
+                value={attendanceSearch}
+                onChange={(e) => setAttendanceSearch(e.target.value)}
+              />
+            </div>
+            {filteredAttendance.length === 0 && <p className="empty-state">No one matches "{attendanceSearch}".</p>}
+            {filteredAttendance.length > 0 && (
+              <table>
+                <thead><tr><th>Name</th><th>Method</th><th></th></tr></thead>
+                <tbody>
+                  {filteredAttendance.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.members?.full_name || '-'}</td>
+                      <td>{a.check_in_method || '-'}</td>
+                      <td>
+                        <button
+                          className="btn small danger"
+                          onClick={() => setRemoveTarget({ id: a.member_id, full_name: a.members?.full_name || '-' })}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
 

@@ -3,7 +3,13 @@ import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester, formatDate, formatDateTime, POINT_CATEGORIES } from '../lib/queries'
+import {
+  getActiveSemester,
+  formatDate,
+  POINT_CATEGORIES,
+  STANDARD_THRESHOLDS,
+  LOWER_THRESHOLDS,
+} from '../lib/queries'
 
 const POST_ADJUSTMENT_URL = import.meta.env.VITE_POST_ADJUSTMENT_URL
 const ADJUSTMENT_CATEGORIES = ['adjustment', ...POINT_CATEGORIES, 'rush', 'extra', 'meeting']
@@ -412,6 +418,8 @@ export default function BrotherDetail({ profile }) {
   const [meetingRows, setMeetingRows] = useState([])
   const [bipRows, setBipRows] = useState([])
   const [showBipForm, setShowBipForm] = useState(false)
+  const [thresholdType, setThresholdType] = useState('standard')
+  const [activePanel, setActivePanel] = useState(null) // null | 'role' | 'status' | 'threshold' | 'points'
 
   async function load() {
     setLoading(true)
@@ -419,7 +427,7 @@ export default function BrotherDetail({ profile }) {
     try {
       const activeSemester = await getActiveSemester()
 
-      const [memberRes, ledgerRes, meetingRes, bipRes] = await Promise.all([
+      const [memberRes, ledgerRes, meetingRes, bipRes, ltaRes] = await Promise.all([
         supabase.from('members').select('*').eq('id', id).single(),
         activeSemester
           ? supabase
@@ -440,12 +448,21 @@ export default function BrotherDetail({ profile }) {
           .select('*')
           .eq('member_id', id)
           .order('created_at', { ascending: false }),
+        activeSemester
+          ? supabase
+              .from('lower_threshold_applications')
+              .select('status')
+              .eq('member_id', id)
+              .eq('semester_id', activeSemester.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
       ])
 
       if (memberRes.error) throw memberRes.error
       if (ledgerRes.error) throw ledgerRes.error
       if (meetingRes.error) throw meetingRes.error
       if (bipRes.error) throw bipRes.error
+      if (ltaRes.error) throw ltaRes.error
 
       const filteredMeetings = (meetingRes.data || [])
         .filter((row) => row.events && (!activeSemester || row.events.semester_id === activeSemester.id))
@@ -456,6 +473,7 @@ export default function BrotherDetail({ profile }) {
       setLedgerRows(ledgerRes.data || [])
       setMeetingRows(filteredMeetings)
       setBipRows(bipRes.data || [])
+      setThresholdType(ltaRes.data?.status === 'approved' ? 'lower' : 'standard')
     } catch (err) {
       setError(err.message)
       toast.error(`Could not load brother details: ${err.message}`)
@@ -473,146 +491,213 @@ export default function BrotherDetail({ profile }) {
   if (error) return <div className="eboard-main"><p className="error-text">{error}</p></div>
   if (!member) return <div className="eboard-main">Brother not found.</div>
 
+  const thresholds = thresholdType === 'lower' ? LOWER_THRESHOLDS : STANDARD_THRESHOLDS
+  const categoryTotals = Object.fromEntries(POINT_CATEGORIES.map((c) => [c, 0]))
+  for (const row of ledgerRows) {
+    if (POINT_CATEGORIES.includes(row.category)) categoryTotals[row.category] += row.delta
+  }
+
+  const initials = member.full_name.split(' ').map((p) => p[0]).slice(0, 2).join('')
+
   return (
     <div className="eboard-main">
       <Link className="back-link" to="/eboard/brothers">&larr; Back to brothers</Link>
-      <h1>{member.full_name}</h1>
-
-      <div className="card">
-        <h2>Profile</h2>
-        <table>
-          <tbody>
-            <tr><th>Email</th><td>{member.email}</td></tr>
-            <tr><th>Pledge class</th><td>{member.pledge_class}</td></tr>
-            <tr><th>Role</th><td>{member.role}</td></tr>
-            <tr><th>E-board position</th><td>{member.eboard_position || '-'}</td></tr>
-            <tr><th>Status</th><td><span className={`status-badge ${member.status}`}>{member.status}</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="section-row">
-        <div className="card">
-          <h2>Role</h2>
-          <RoleFlip member={member} onChanged={load} />
-        </div>
-
-        <div className="card">
-          <h2>Status</h2>
-          <StatusChange member={member} onChanged={load} />
-        </div>
-
-        <div className="card">
-          <h2>Lower threshold eligibility</h2>
-          <FirstSemesterField member={member} onChanged={load} />
+      <div className="page-header">
+        <div>
+          <h1>{member.full_name}</h1>
+          <p className="page-subtitle">{semester ? semester.name : 'No active semester'} &middot; {member.role === 'eboard' ? 'E-Board' : 'Brother'}</p>
         </div>
       </div>
 
-      <div className="card">
-        <h2>Manual point adjustment</h2>
-        <ManualAdjustmentForm member={member} semester={semester} onAdjusted={load} />
-      </div>
-
-      <div className="card">
-        <h2>Brother Improvement Plans</h2>
-        {bipRows.length === 0 && <p className="empty-state">No improvement plans on file.</p>}
-        {bipRows.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Requirements</th>
-                <th>Due</th>
-                <th>Status</th>
-                <th>Resolution note</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bipRows.map((bip) => (
-                <tr key={bip.id}>
-                  <td>{bip.description}</td>
-                  <td>{bip.requirements}</td>
-                  <td>{bip.due_date}</td>
-                  <td><span className={`status-badge ${bip.status === 'open' ? 'pending' : bip.status === 'resolved' ? 'active' : 'unexcused'}`}>{bip.status}</span></td>
-                  <td>{bip.resolution_note || '-'}</td>
-                  <td><BipActions bip={bip} onChanged={load} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {!showBipForm && (
-          <button type="button" className="btn" style={{ marginTop: '0.75rem' }} onClick={() => setShowBipForm(true)}>
-            New improvement plan
-          </button>
-        )}
-        {showBipForm && (
-          <div style={{ marginTop: '0.75rem' }}>
-            <CreateBipForm
-              member={member}
-              createdBy={profile.id}
-              onClose={() => setShowBipForm(false)}
-              onCreated={() => {
-                setShowBipForm(false)
-                load()
-              }}
-            />
+      <div className="detail-layout">
+        <div>
+          <div className="card">
+            <div className="avatar lg" style={{ marginBottom: '0.75rem' }}>{initials}</div>
+            <h2 style={{ fontSize: '1.15rem' }}>{member.full_name}</h2>
+            <div style={{ display: 'flex', gap: '0.4rem', margin: '0.5rem 0 1rem' }}>
+              <span className={`status-badge ${member.status}`}>{member.status}</span>
+              <span className={`pill ${member.role === 'eboard' ? 'role-eboard' : 'role-brother'}`}>
+                {member.role === 'eboard' ? 'E-Board' : 'Brother'}
+              </span>
+            </div>
+            <table>
+              <tbody>
+                <tr><th>Pledge class</th><td>{member.pledge_class}</td></tr>
+                <tr><th>Email</th><td>{member.email}</td></tr>
+                <tr><th>Position</th><td>{member.eboard_position || '—'}</td></tr>
+                <tr><th>Threshold</th><td>{thresholdType === 'lower' ? 'Lower' : 'Standard'}</td></tr>
+                <tr><th>First semester</th><td>{member.first_semester_initiated || '—'}</td></tr>
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
 
-      <div className="section-row">
-        <div className="card">
-          <h2>Points ledger (active semester)</h2>
-          {ledgerRows.length === 0 && <p className="empty-state">No points recorded this semester.</p>}
-          {ledgerRows.length > 0 && (
-            <table>
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Delta</th>
-                  <th>Event</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ledgerRows.map((row) => (
-                  <tr key={row.id}>
-                    <td><span className={`pill ${row.category}`}>{row.category}</span></td>
-                    <td>{row.delta}</td>
-                    <td>{row.events?.name || row.note || '-'}</td>
-                    <td>{formatDate(row.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <div className="card">
+            <h2>Actions</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'points' ? null : 'points')}>
+                Post point adjustment
+              </button>
+              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'role' ? null : 'role')}>
+                Change role
+              </button>
+              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'status' ? null : 'status')}>
+                Change status
+              </button>
+              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'threshold' ? null : 'threshold')}>
+                Lower threshold eligibility
+              </button>
+              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setShowBipForm((v) => !v)}>
+                Open improvement plan
+              </button>
+              {member.status !== 'suspended' && (
+                <button
+                  type="button"
+                  className="btn danger"
+                  style={{ textAlign: 'left' }}
+                  onClick={async () => {
+                    if (!window.confirm(`Suspend ${member.full_name}?`)) return
+                    const { error: updateError } = await supabase.from('members').update({ status: 'suspended' }).eq('id', member.id)
+                    if (updateError) {
+                      toast.error(`Could not suspend: ${updateError.message}`)
+                    } else {
+                      toast.success(`${member.full_name} suspended.`)
+                      load()
+                    }
+                  }}
+                >
+                  Suspend
+                </button>
+              )}
+            </div>
+
+            {activePanel === 'points' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
+                <ManualAdjustmentForm member={member} semester={semester} onAdjusted={load} />
+              </div>
+            )}
+            {activePanel === 'role' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
+                <RoleFlip member={member} onChanged={load} />
+              </div>
+            )}
+            {activePanel === 'status' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
+                <StatusChange member={member} onChanged={load} />
+              </div>
+            )}
+            {activePanel === 'threshold' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
+                <FirstSemesterField member={member} onChanged={load} />
+              </div>
+            )}
+            {showBipForm && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
+                <CreateBipForm
+                  member={member}
+                  createdBy={profile.id}
+                  onClose={() => setShowBipForm(false)}
+                  onCreated={() => {
+                    setShowBipForm(false)
+                    load()
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="card">
-          <h2>Meeting attendance (active semester)</h2>
-          {meetingRows.length === 0 && <p className="empty-state">No meeting attendance this semester.</p>}
-          {meetingRows.length > 0 && (
-            <table>
-              <thead>
-                <tr>
-                  <th>Meeting</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meetingRows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.events.name}</td>
-                    <td>{formatDateTime(row.events.starts_at)}</td>
-                    <td><span className={`status-badge ${row.status}`}>{row.status}</span></td>
+        <div>
+          <div className="card">
+            <h2>Points &mdash; {semester ? semester.name : 'active semester'}</h2>
+            <p className="card-subtitle">Computed from ledger</p>
+            <div className="progress-grid">
+              {POINT_CATEGORIES.map((c) => {
+                const value = categoryTotals[c]
+                const required = thresholds[c]
+                const pct = required > 0 ? Math.min(100, (value / required) * 100) : 0
+                const met = value >= required
+                return (
+                  <div className="progress-tile" key={c}>
+                    <div className="progress-label">{c}</div>
+                    <div className="progress-value">{value}</div>
+                    <div className="progress-required">of {required} required</div>
+                    <div className="progress-bar-track">
+                      <div className={`progress-bar-fill ${met ? 'met' : ''}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head">
+              <h2>Point ledger &mdash; {semester ? semester.name : 'active semester'}</h2>
+              <span className="card-subtitle" style={{ margin: 0 }}>Append-only &middot; all entries</span>
+            </div>
+            {ledgerRows.length === 0 && <p className="empty-state">No points recorded this semester.</p>}
+            {ledgerRows.map((row) => (
+              <div className="list-row" key={row.id}>
+                <div className={`list-icon ${row.delta >= 0 ? 'ok' : 'bad'}`}>{row.delta >= 0 ? '✓' : '✕'}</div>
+                <div className="list-row-body">
+                  <div className="list-row-title">{row.events?.name || row.note || row.category}</div>
+                  <div className="list-row-sub">
+                    <span style={{ textTransform: 'capitalize' }}>{row.category}</span> &middot; {formatDate(row.created_at)}
+                  </div>
+                </div>
+                <div className={`list-row-value ${row.delta >= 0 ? 'pos' : 'neg'}`}>
+                  {row.delta >= 0 ? '+' : ''}{row.delta}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card">
+            <div className="card-head">
+              <h2>Meeting attendance &mdash; {semester ? semester.name : 'active semester'}</h2>
+            </div>
+            {meetingRows.length === 0 && <p className="empty-state">No meeting attendance this semester.</p>}
+            {meetingRows.map((row) => (
+              <div className="list-row" key={row.id}>
+                <div className="list-row-body">
+                  <div className="list-row-title">{formatDate(row.events.starts_at)}</div>
+                  <div className="list-row-sub">{row.events.name}</div>
+                </div>
+                <span className={`status-badge ${row.status}`}>{row.status}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="card">
+            <h2>Brother Improvement Plans</h2>
+            {bipRows.length === 0 && <p className="empty-state">No improvement plans on file.</p>}
+            {bipRows.length > 0 && (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Requirements</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Resolution note</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {bipRows.map((bip) => (
+                    <tr key={bip.id}>
+                      <td>{bip.description}</td>
+                      <td>{bip.requirements}</td>
+                      <td>{bip.due_date}</td>
+                      <td><span className={`status-badge ${bip.status === 'open' ? 'pending' : bip.status === 'resolved' ? 'active' : 'unexcused'}`}>{bip.status}</span></td>
+                      <td>{bip.resolution_note || '-'}</td>
+                      <td><BipActions bip={bip} onChanged={load} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
     </div>

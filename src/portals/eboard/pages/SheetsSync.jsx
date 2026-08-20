@@ -39,35 +39,55 @@ export default function SheetsSync() {
     }
   }
 
+  const stale = !lastSyncAt || Date.now() - new Date(lastSyncAt).getTime() > 24 * 60 * 60 * 1000
+
   return (
     <div className="eboard-main">
-      <h1>Sheets sync</h1>
-
-      <div className="card">
-        <h2>Google Sheets sync</h2>
-        <table>
-          <tbody>
-            <tr>
-              <th>Active semester</th>
-              <td>{semester === undefined ? 'Loading...' : semester ? semester.name : 'None active'}</td>
-            </tr>
-            <tr>
-              <th>Last sync</th>
-              <td>{lastSyncAt ? new Date(lastSyncAt).toLocaleString() : 'Never run this session'}</td>
-            </tr>
-          </tbody>
-        </table>
-        {error && <p className="error-text">{error}</p>}
-        {result && <p className="note-text">{result}</p>}
-        <div style={{ marginTop: '0.75rem' }}>
-          <button className="btn" disabled={running || !semester} onClick={handleRunSync}>
-            {running ? 'Running...' : 'Run sync'}
-          </button>
+      <div className="page-header">
+        <div>
+          <h1>Sheets sync</h1>
+          <p className="page-subtitle">
+            Syncs to "{semester ? `${semester.name} — Chapter Roster` : 'active semester'}" Google Sheet
+          </p>
         </div>
-        <p className="note-text">
-          Overwrites the "{semester?.name || 'active semester'}" tab with current standings. An archive snapshot is
-          appended automatically when end-of-semester standing is calculated.
-        </p>
+      </div>
+      {error && <p className="error-text">{error}</p>}
+
+      <div className="sync-grid">
+        <div className="sync-tile">
+          <div>
+            <div className="sync-tile-title">Current semester tab</div>
+            <div className="sync-tile-sub">
+              {lastSyncAt ? `Last synced ${new Date(lastSyncAt).toLocaleString()}` : 'Never run this session'}
+            </div>
+          </div>
+          <div className={`sync-status ${stale ? 'stale' : 'ok'}`}>
+            <span className="dot" />
+            {stale ? 'Stale' : 'Up to date'}
+          </div>
+        </div>
+        <div className="sync-tile">
+          <div>
+            <div className="sync-tile-title">Archive tab</div>
+            <div className="sync-tile-sub">Appended at semester close</div>
+          </div>
+          <div className="sync-status ok">
+            <span className="dot" />
+            Up to date
+          </div>
+        </div>
+      </div>
+
+      {result && <p className="note-text">{result}</p>}
+
+      <div className="sync-cta">
+        <div>
+          <div className="sync-cta-title">Sync now</div>
+          <div className="sync-cta-sub">Overwrites the current semester tab with live data. Archive tab is not affected.</div>
+        </div>
+        <button className="btn gold" disabled={running || !semester} onClick={handleRunSync}>
+          {running ? 'Running...' : 'Run sync'}
+        </button>
       </div>
     </div>
   )

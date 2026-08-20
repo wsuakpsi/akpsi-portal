@@ -86,120 +86,130 @@ export default function Forms({ profile }) {
 
   if (loading) return <div className="eboard-main">Loading...</div>
 
+  const totalPending = missingMeetingForms.length + thresholdApps.length
+
   return (
     <div className="eboard-main">
-      <h1>Forms</h1>
+      <div className="page-header">
+        <div>
+          <h1>Forms</h1>
+          <p className="page-subtitle">{totalPending} pending review</p>
+        </div>
+      </div>
       {error && <p className="error-text">{error}</p>}
 
-      <div className="card">
-        <h2>Missing meeting forms</h2>
-        {missingMeetingForms.length === 0 && <p className="empty-state">No pending missing meeting forms.</p>}
-        {missingMeetingForms.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Brother</th>
-                <th>Meeting</th>
-                <th>Date</th>
-                <th>Reason</th>
-                <th>Proof</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {missingMeetingForms.map((form) => {
-                const isBusy = busyId === form.id
-                return (
-                  <tr key={form.id}>
-                    <td>{form.members?.full_name || '-'}</td>
-                    <td>{form.events?.name || '-'}</td>
-                    <td>{form.events ? formatDateTime(form.events.starts_at) : '-'}</td>
-                    <td>{form.reason}</td>
-                    <td>
-                      {form.proof_url ? (
-                        <a href={form.proof_url} target="_blank" rel="noreferrer">View</a>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button
-                          className="btn small"
-                          disabled={isBusy}
-                          onClick={() => handleMissingMeetingReview(form, 'approved')}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="btn small danger"
-                          disabled={isBusy}
-                          onClick={() => handleMissingMeetingReview(form, 'denied')}
-                        >
-                          Deny
-                        </button>
+      {missingMeetingForms.length > 0 && (
+        <>
+          <div className="section-label">Missing meeting forms &middot; {missingMeetingForms.length} pending</div>
+          <div className="card">
+            {missingMeetingForms.map((form) => {
+              const isBusy = busyId === form.id
+              return (
+                <div className="form-card" key={form.id}>
+                  <div className="form-card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                  </div>
+                  <div className="form-card-body">
+                    <div className="form-card-head">
+                      <div className="form-card-title">
+                        {form.members?.full_name || 'Unknown'}
+                        <span className="status-badge lower">Missing meeting</span>
                       </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                      <span className="status-badge excused">Pending</span>
+                    </div>
+                    <div className="form-card-meta">
+                      {form.events?.name || 'Meeting'} &middot; {form.events ? formatDateTime(form.events.starts_at) : '-'}
+                      {' · Submitted '}{formatDateTime(form.created_at).split(',')[0]}
+                    </div>
+                    <div className="form-card-reason">&ldquo;{form.reason}&rdquo;</div>
+                    {form.proof_url && (
+                      <div className="form-card-file">
+                        <a href={form.proof_url} target="_blank" rel="noreferrer">📄 View attachment</a>
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-card-actions">
+                    <button
+                      className="btn small"
+                      disabled={isBusy}
+                      onClick={() => handleMissingMeetingReview(form, 'approved')}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="btn small danger"
+                      disabled={isBusy}
+                      onClick={() => handleMissingMeetingReview(form, 'denied')}
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
 
-      <div className="card">
-        <h2>Lower threshold applications</h2>
-        {thresholdApps.length === 0 && <p className="empty-state">No pending lower threshold applications.</p>}
-        {thresholdApps.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Brother</th>
-                <th>Reason</th>
-                <th>Proof</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {thresholdApps.map((app) => {
-                const isBusy = busyId === app.id
-                return (
-                  <tr key={app.id}>
-                    <td>{app.members?.full_name || '-'}</td>
-                    <td>{app.reason}</td>
-                    <td>
-                      {app.proof_url ? (
-                        <a href={app.proof_url} target="_blank" rel="noreferrer">View</a>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button
-                          className="btn small"
-                          disabled={isBusy}
-                          onClick={() => handleThresholdReview(app, 'approved')}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="btn small danger"
-                          disabled={isBusy}
-                          onClick={() => handleThresholdReview(app, 'denied')}
-                        >
-                          Deny
-                        </button>
+      {thresholdApps.length > 0 && (
+        <>
+          <div className="section-label">Lower threshold applications &middot; {thresholdApps.length} pending</div>
+          <div className="card">
+            {thresholdApps.map((app) => {
+              const isBusy = busyId === app.id
+              return (
+                <div className="form-card lower-threshold" key={app.id}>
+                  <div className="form-card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                    </svg>
+                  </div>
+                  <div className="form-card-body">
+                    <div className="form-card-head">
+                      <div className="form-card-title">
+                        {app.members?.full_name || 'Unknown'}
+                        <span className="status-badge lower">Lower threshold</span>
                       </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                      <span className="status-badge excused">Pending</span>
+                    </div>
+                    <div className="form-card-meta">Submitted {formatDateTime(app.created_at).split(',')[0]}</div>
+                    <div className="form-card-reason">&ldquo;{app.reason}&rdquo;</div>
+                    {app.proof_url && (
+                      <div className="form-card-file">
+                        <a href={app.proof_url} target="_blank" rel="noreferrer">📄 View attachment</a>
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-card-actions">
+                    <button
+                      className="btn small"
+                      disabled={isBusy}
+                      onClick={() => handleThresholdReview(app, 'approved')}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="btn small danger"
+                      disabled={isBusy}
+                      onClick={() => handleThresholdReview(app, 'denied')}
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {totalPending === 0 && (
+        <div className="card">
+          <p className="empty-state">No pending forms.</p>
+        </div>
+      )}
     </div>
   )
 }

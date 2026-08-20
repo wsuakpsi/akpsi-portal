@@ -30,3 +30,23 @@ export function formatDate(iso) {
 }
 
 export const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social']
+
+// Mirrors lambdas/src/lib/thresholds.js defaults, for display purposes only.
+export const STANDARD_THRESHOLDS = { professional: 40, service: 20, fundraising: 20, social: 20, total: 100 }
+export const LOWER_THRESHOLDS = { professional: 20, service: 10, fundraising: 10, social: 10, total: 50 }
+
+export async function getSidebarBadgeCounts() {
+  const [mmfRes, ltaRes] = await Promise.all([
+    supabase.from('missing_meeting_forms').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase
+      .from('lower_threshold_applications')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+  ])
+  if (mmfRes.error) throw mmfRes.error
+  if (ltaRes.error) throw ltaRes.error
+
+  return {
+    forms: (mmfRes.count || 0) + (ltaRes.count || 0),
+  }
+}

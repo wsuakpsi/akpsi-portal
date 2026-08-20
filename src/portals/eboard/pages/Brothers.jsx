@@ -86,6 +86,7 @@ export default function Brothers() {
   const [meetingCountsByMember, setMeetingCountsByMember] = useState({})
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
 
   async function load() {
@@ -153,17 +154,65 @@ export default function Brothers() {
   const filtered = members.filter((m) => {
     if (roleFilter !== 'all' && m.role !== roleFilter) return false
     if (statusFilter !== 'all' && m.status !== statusFilter) return false
+    const query = search.trim().toLowerCase()
+    if (query && !m.full_name.toLowerCase().includes(query) && !(m.pledge_class || '').toLowerCase().includes(query)) {
+      return false
+    }
     return true
   })
 
+  function handleExport() {
+    const header = ['Full name', 'Pledge class', 'Role', 'Position', 'Status', 'Lower threshold', 'Excused', 'Unexcused']
+    const rows = filtered.map((m) => {
+      const counts = meetingCountsByMember[m.id] || { excused: 0, unexcused: 0 }
+      return [
+        m.full_name,
+        m.pledge_class,
+        m.role,
+        m.eboard_position || '',
+        m.status,
+        thresholdByMember[m.id] === 'approved' ? 'lower' : 'standard',
+        counts.excused,
+        counts.unexcused,
+      ]
+    })
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'brothers.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) return <div className="eboard-main">Loading...</div>
+
+  const lowerCount = members.filter((m) => thresholdByMember[m.id] === 'approved').length
+  const suspendedCount = members.filter((m) => m.status === 'suspended').length
 
   return (
     <div className="eboard-main">
-      <h1>Brothers</h1>
+      <div className="page-header">
+        <div>
+          <h1>Brothers</h1>
+          <p className="page-subtitle">
+            {members.length} active members &middot; {lowerCount} on lower threshold &middot; {suspendedCount} suspended
+          </p>
+        </div>
+      </div>
       {error && <p className="error-text">{error}</p>}
 
       <div className="toolbar">
+        <input
+          type="text"
+          placeholder="Search by name or pledge class"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ minWidth: '220px' }}
+        />
         <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="all">All roles</option>
           {ROLES.map((r) => (
@@ -177,7 +226,8 @@ export default function Brothers() {
           ))}
         </select>
         <div className="spacer" />
-        <button className="btn" onClick={() => setShowAddForm(true)}>Add brother</button>
+        <button className="btn secondary" onClick={handleExport}>Export</button>
+        <button className="btn" onClick={() => setShowAddForm(true)}>+ Add brother</button>
       </div>
 
       <div className="card">
@@ -186,37 +236,50 @@ export default function Brothers() {
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Pledge class</th>
+                <th>Member</th>
                 <th>Role</th>
-                <th>E-board position</th>
+                <th>Position</th>
                 <th>Status</th>
-                <th>Lower threshold</th>
-                <th>Meetings (ex/un)</th>
+                <th>Threshold</th>
+                <th>Absences</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((m) => {
                 const counts = meetingCountsByMember[m.id] || { excused: 0, unexcused: 0 }
+                const flagged = counts.excused >= 2 || counts.unexcused >= 1
                 return (
                   <tr key={m.id}>
                     <td>
-                      <Link className="row-link" to={`/eboard/brothers/${m.id}`}>{m.full_name}</Link>
+                      <div className="member-cell">
+                        <div className="avatar">{m.full_name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                        <div>
+                          <div className="member-name">{m.full_name}</div>
+                          <div className="member-sub">{m.pledge_class}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td>{m.pledge_class}</td>
-                    <td>{m.role}</td>
-                    <td>{m.eboard_position || '-'}</td>
+                    <td>
+                      <span className={`pill ${m.role === 'eboard' ? 'role-eboard' : 'role-brother'}`}>
+                        {m.role === 'eboard' ? 'E-Board' : 'Brother'}
+                      </span>
+                    </td>
+                    <td>{m.eboard_position || '—'}</td>
                     <td><span className={`status-badge ${m.status}`}>{m.status}</span></td>
                     <td>
-                      {thresholdByMember[m.id] ? (
-                        <span className={`status-badge ${thresholdByMember[m.id]}`}>
-                          {thresholdByMember[m.id]}
-                        </span>
+                      {thresholdByMember[m.id] === 'approved' ? (
+                        <span className="status-badge lower">Lower</span>
                       ) : (
-                        '-'
+                        '—'
                       )}
                     </td>
-                    <td>{counts.excused} / {counts.unexcused}</td>
+                    <td className={flagged ? 'count-flag' : ''}>
+                      {counts.excused} exc &middot; {counts.unexcused} unexc
+                    </td>
+                    <td>
+                      <Link className="btn small secondary" to={`/eboard/brothers/${m.id}`}>View</Link>
+                    </td>
                   </tr>
                 )
               })}

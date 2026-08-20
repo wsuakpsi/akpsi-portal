@@ -69,6 +69,7 @@ export default function Points() {
   const [calculating, setCalculating] = useState(false)
   const [calcError, setCalcError] = useState(null)
   const [calcResult, setCalcResult] = useState(null)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -167,18 +168,39 @@ export default function Points() {
 
   if (loading) return <div className="eboard-main">Loading...</div>
 
+  const filteredRows = rows.filter((row) => row.name.toLowerCase().includes(search.trim().toLowerCase()))
+
   return (
     <div className="eboard-main">
-      <h1>Points &amp; Standing</h1>
+      <div className="page-header">
+        <div>
+          <h1>Points</h1>
+          <p className="page-subtitle">
+            {semester ? semester.name : 'No active semester'} &middot; computed from ledger &middot; standing calculated end of semester
+          </p>
+        </div>
+      </div>
       {error && <p className="error-text">{error}</p>}
 
       {!semester && <p className="empty-state">No active semester configured.</p>}
 
       {semester && (
         <>
+          <div className="toolbar">
+            <input
+              type="text"
+              placeholder="Search by name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
           <div className="card">
             {rows.length === 0 && <p className="empty-state">No members found.</p>}
-            {rows.length > 0 && (
+            {rows.length > 0 && filteredRows.length === 0 && (
+              <p className="empty-state">No members match "{search}".</p>
+            )}
+            {filteredRows.length > 0 && (
               <table>
                 <thead>
                   <tr>
@@ -190,9 +212,14 @@ export default function Points() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {filteredRows.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.name}</td>
+                      <td>
+                        <div className="member-cell">
+                          <div className="avatar">{row.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                          <div className="member-name">{row.name}</div>
+                        </div>
+                      </td>
                       {POINT_CATEGORIES.map((c) => (
                         <td key={c}>{row.byCategory[c]}</td>
                       ))}

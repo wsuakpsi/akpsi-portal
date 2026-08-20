@@ -122,7 +122,12 @@ export default function Attendance() {
 
   return (
     <div className="eboard-main">
-      <h1>Attendance</h1>
+      <div className="page-header">
+        <div>
+          <h1>Attendance</h1>
+          <p className="page-subtitle">{meetings.length} meetings held &middot; corrections logged below</p>
+        </div>
+      </div>
       {error && <p className="error-text">{error}</p>}
 
       {meetings.length === 0 && <p className="empty-state">No meetings recorded this semester.</p>}
@@ -156,7 +161,12 @@ export default function Attendance() {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.members?.full_name || '-'}</td>
+                      <td>
+                        <div className="member-cell">
+                          <div className="avatar">{(row.members?.full_name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                          <div className="member-name">{row.members?.full_name || '-'}</div>
+                        </div>
+                      </td>
                       <td><span className={`status-badge ${row.status}`}>{row.status}</span></td>
                       <td>
                         <button className="btn small secondary" onClick={() => setCorrectionTarget(row)}>
