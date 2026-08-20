@@ -14,7 +14,7 @@ export async function recordAttendance(eventId, memberId, checkInMethod, recorde
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('id, status')
+    .select('id, status, category')
     .eq('id', eventId)
     .maybeSingle();
   if (eventError) return { success: false, error: eventError.message };
@@ -59,6 +59,22 @@ export async function recordAttendance(eventId, memberId, checkInMethod, recorde
       .update({ status: 'going' })
       .eq('id', rsvp.id);
     if (rsvpUpdateError) return { success: false, error: rsvpUpdateError.message };
+  }
+
+  // Meetings track presence in meeting_attendance (present/excused/
+  // unexcused), a separate table from the points-bearing `attendance` one
+  // above — but nothing before this wrote 'present' into it, so a checked-in
+  // brother's meeting record stayed stuck at the 'unexcused' default forever.
+  // `attendance` above is still what standing calculation and points read;
+  // this is purely keeping meeting_attendance's own present/excused/
+  // unexcused display in sync with it. Upserting unconditionally to
+  // 'present' is deliberate — showing up in person overrides a prior
+  // 'excused' from an approved missing-meeting form (they did attend after all).
+  if (event.category === 'meeting') {
+    const { error: meetingAttendanceError } = await supabase
+      .from('meeting_attendance')
+      .upsert({ event_id: eventId, member_id: memberId, status: 'present' }, { onConflict: 'event_id,member_id' });
+    if (meetingAttendanceError) return { success: false, error: meetingAttendanceError.message };
   }
 
   return { success: true };

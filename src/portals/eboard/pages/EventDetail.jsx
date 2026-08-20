@@ -186,7 +186,11 @@ export default function EventDetail() {
       const [eventRes, rsvpsRes, attendanceRes] = await Promise.all([
         supabase.from('events').select('*').eq('id', id).maybeSingle(),
         supabase.from('rsvps').select('*, members(full_name)').eq('event_id', id),
-        supabase.from('attendance').select('*, members(full_name)').eq('event_id', id),
+        // attendance has two FKs to members (member_id, recorded_by —
+        // the latter added in migration 0008), so the embed must name
+        // which relationship to follow or PostgREST rejects it as
+        // ambiguous. This is the attendee, not who checked them in.
+        supabase.from('attendance').select('*, members!member_id(full_name)').eq('event_id', id),
       ])
       if (eventRes.error) throw eventRes.error
       if (rsvpsRes.error) throw rsvpsRes.error
@@ -244,6 +248,7 @@ export default function EventDetail() {
   }
 
   if (loading) return <div className="eboard-main">Loading...</div>
+  if (error) return <div className="eboard-main"><p className="error-text">{error}</p></div>
   if (!event) return <div className="eboard-main">Event not found.</div>
 
   const attendedIds = new Set(attendance.map((a) => a.member_id))
@@ -272,7 +277,7 @@ export default function EventDetail() {
         )}
       </div>
 
-      {event.status === 'scheduled' && event.category !== 'meeting' && (
+      {event.status === 'scheduled' && (
         <>
           <CheckInQr eventId={id} />
           <ManualCheckIn eventId={id} alreadyAttendedIds={attendedIds} onCheckedIn={load} />

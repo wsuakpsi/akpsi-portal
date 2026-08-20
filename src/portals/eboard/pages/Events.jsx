@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
@@ -115,6 +115,10 @@ export default function Events() {
   const [attendanceCounts, setAttendanceCounts] = useState({})
   const [showAddForm, setShowAddForm] = useState(false)
   const [busyEventId, setBusyEventId] = useState(null)
+  const [showPast, setShowPast] = useState(false)
+  const [searchName, setSearchName] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   async function load() {
     setLoading(true)
@@ -199,6 +203,22 @@ export default function Events() {
     }
   }
 
+  const filteredEvents = useMemo(() => {
+    const nameQuery = searchName.trim().toLowerCase()
+    const fromTime = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null
+    // End-of-day so a "to" date includes events that start on that day.
+    const toTime = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null
+
+    return events.filter((event) => {
+      if (!showPast && event.status !== 'scheduled') return false
+      if (nameQuery && !event.name.toLowerCase().includes(nameQuery)) return false
+      const startTime = new Date(event.starts_at).getTime()
+      if (fromTime !== null && startTime < fromTime) return false
+      if (toTime !== null && startTime > toTime) return false
+      return true
+    })
+  }, [events, showPast, searchName, dateFrom, dateTo])
+
   if (loading) return <div className="eboard-main">Loading...</div>
 
   return (
@@ -211,13 +231,38 @@ export default function Events() {
       {semester && (
         <>
           <div className="toolbar">
+            <input
+              type="text"
+              placeholder="Search by name..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+            />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              aria-label="From date"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              aria-label="To date"
+            />
+            <button type="button" className="btn secondary" onClick={() => setShowPast((v) => !v)}>
+              {showPast ? 'Hide past events' : 'Show past events'}
+            </button>
             <div className="spacer" />
             <button className="btn" onClick={() => setShowAddForm(true)}>Add event</button>
           </div>
 
           <div className="card">
-            {events.length === 0 && <p className="empty-state">No events this semester.</p>}
-            {events.length > 0 && (
+            {filteredEvents.length === 0 && (
+              <p className="empty-state">
+                {events.length === 0 ? 'No events this semester.' : 'No events match these filters.'}
+              </p>
+            )}
+            {filteredEvents.length > 0 && (
               <table>
                 <thead>
                   <tr>
@@ -230,7 +275,7 @@ export default function Events() {
                   </tr>
                 </thead>
                 <tbody>
-                  {events.map((event) => {
+                  {filteredEvents.map((event) => {
                     const isBusy = busyEventId === event.id
                     return (
                       <tr key={event.id}>

@@ -110,7 +110,18 @@ before running any business logic:
 
 ## Deploying
 
-Each `src/<name>.js` file is a self-contained Lambda entrypoint
-(`handler` export). Bundle with your tool of choice (esbuild, webpack,
-SAM, CDK, etc.) — `googleapis` is only needed by `syncToGoogleSheets`, so
-exclude it from the other bundles if you want smaller packages.
+`template.yaml` in this directory is a ready-to-use AWS SAM template
+covering all 9 API Gateway-fronted functions (including `recordAttendance`'s
+two separate routes for its `handler`/`qrHandler` exports) behind one
+shared HTTP API, plus the nightly Sheets sync cron gated behind an
+`EnableNightlySync` parameter. It doesn't bundle per-function (no esbuild
+tree-shaking) — every function ships with the full `node_modules`,
+including `googleapis` even though only `syncToGoogleSheets` needs it.
+That's a deliberate simplicity-over-package-size tradeoff for a small
+chapter deployment; revisit with per-function esbuild bundling if package
+size ever becomes a real problem.
+
+Step-by-step deploy instructions (including exactly what to enter for
+`sam deploy --guided`'s prompts) are in `../DEPLOY.md`, not here — that
+file also covers the Google Sheets credential setup and test-account
+creation steps that have to happen alongside this.

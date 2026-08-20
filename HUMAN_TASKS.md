@@ -4,6 +4,11 @@ Everything below requires you specifically — credentials, account creation, an
 real-device/browser testing are all things Claude won't do (see the "why" notes).
 Cross-reference with `HANDOFF.md` for the full technical writeup of what's been built.
 
+**→ For exact step-by-step commands for sections 1-3, see [`DEPLOY.md`](DEPLOY.md).**
+It has a ready-to-use SAM template (`lambdas/template.yaml`) covering all 9
+Lambdas + API Gateway in one deploy, plus a URL-to-env-var mapping table so
+wiring `.env.local` afterward is copy/paste, not guesswork.
+
 ## 1. AWS — deploy the Lambdas
 
 Nothing in `lambdas/src/` has ever been deployed. Until this is done, every
@@ -15,49 +20,39 @@ nowhere to send its request and will fail.
 - [ ] Decide which AWS account this chapter actually owns. **Do not use the
       AWS credentials configured in this dev environment** — they resolve to
       an unrelated employer/work account (see HANDOFF.md warning #2).
-- [ ] Bundle each file in `lambdas/src/*.js` as a Lambda (exclude `googleapis`
-      from bundles other than `syncToGoogleSheets.js` to keep them small —
-      see `lambdas/README.md`'s Deploying section).
-- [ ] Stand up API Gateway routes in front of each Lambda's `handler` export.
-      `recordAttendance.js` needs **two** routes — one for `handler` (manual),
-      one for `qrHandler` (QR scan) — since it's one file with two entrypoints.
-- [ ] Set Lambda env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (both
-      already in your local `.env.local`, just copy them in), plus
-      `QR_CHECKIN_JWT_SECRET` (make up a new secret, don't reuse anything
-      Supabase-issued). Full table in `lambdas/README.md`.
+- [ ] `DEPLOY.md` section 1: `sam build && sam deploy --guided` from
+      `lambdas/`, using `lambdas/template.yaml` (already written — covers
+      all 9 API-facing functions behind one shared HTTP API, including
+      `recordAttendance.js`'s two separate routes for its two handlers).
 - [ ] Fill in every `VITE_*_URL` in `.env.local` (frontend) with the real
-      API Gateway URLs once deployed — see `.env.example` for the full list,
-      including the two new ones from this session:
-      `VITE_CREATE_SEMESTER_URL` and (already there) `VITE_CALCULATE_STANDING_URL`.
-- [ ] Optional but recommended: wire up the nightly Sheets sync cron.
-      `lambdas/src/nightlySheetsSync.js` + `lambdas/infra/nightly-sheets-sync.template.yaml`
-      are ready but not deployed — needs an EventBridge schedule pointing at it.
+      API Gateway URLs from the deploy output — mapping table in
+      `DEPLOY.md` section 1c.
+- [ ] Optional but recommended: the nightly Sheets sync cron is in the same
+      template (`NightlySheetsSyncFunction`, EventBridge `ScheduleV2`),
+      gated behind the `EnableNightlySync` parameter — flip it on once
+      Google Sheets (section 2) is set up.
 
 ## 2. Google Sheets integration
 
-`syncToGoogleSheets` needs its own credentials, separate from AWS:
-
-- [ ] Create a Google Cloud service account, share the target spreadsheet
-      with its email address (Editor access).
-- [ ] Set `GOOGLE_SERVICE_ACCOUNT_JSON` (full credentials JSON as a string)
-      and `GOOGLE_SHEETS_SPREADSHEET_ID` as Lambda env vars.
+`syncToGoogleSheets` needs its own credentials, separate from AWS. Full
+click-by-click steps in `DEPLOY.md` section 2 (create a Google Cloud
+service account, share the target spreadsheet with it, feed the two values
+back into a `sam deploy --parameter-overrides` call).
 
 ## 3. Create real test accounts (Claude will never do this step)
 
 Claude does not create accounts or enter passwords into any login form —
 including test/dev accounts — as a hard rule, regardless of how low-stakes
 it seems. This has blocked click-testing since Phase 1 and is unrelated to
-AWS.
+AWS. Steps in `DEPLOY.md` section 3 — it's smaller than it sounds:
+`scripts/seed-eboard.mjs` already defaults to seeding
+`samaksharora.09@gmail.com` as the E-Board test account, so the only human
+step is creating that one Supabase Auth user + password in the dashboard,
+then Claude (or you) can run `npm run seed:eboard` to backfill realistic
+test data — that part needs no password, just the already-configured
+service role key.
 
-- [ ] In the Supabase dashboard (Auth → Users), create at least two test
-      logins: one E-Board (`role = 'eboard'`, `eboard_position` set), one
-      brother (`role = 'brother'`). Set a real password on each — `supabase
-      auth admin` or the dashboard's "reset password" flow both work.
-- [ ] `scripts/seed-eboard.mjs` (`npm run seed:eboard`) looks up a
-      *pre-existing* Supabase Auth user by email and backfills their
-      `members` row — it does not create the Auth user or set a password.
-      Run it after creating the Auth user, not instead of.
-- [ ] Once you have working logins, you (or Claude driving the browser tool
+- [ ] Once you have a working login, you (or Claude driving the browser tool
       while you're signed in) can finally click-test the full list below.
 
 ## 4. Click-test punch list, once you have logins + deployed Lambdas
