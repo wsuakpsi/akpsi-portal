@@ -1,15 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
-import { getMyProfile } from '../lib/auth'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -24,25 +21,9 @@ export default function Login() {
     if (signInError) {
       setError(signInError.message)
       toast.error(signInError.message)
-      setLoading(false)
-      return
     }
 
-    try {
-      const profile = await getMyProfile()
-      if (profile?.role === 'brother') {
-        navigate('/brother')
-      } else if (profile?.role === 'eboard') {
-        navigate('/eboard')
-      } else {
-        navigate('/')
-      }
-    } catch (err) {
-      setError(err.message)
-      toast.error(`Could not sign in: ${err.message}`)
-    } finally {
-      setLoading(false)
-    }
+    setLoading(false)
   }
 
   return (

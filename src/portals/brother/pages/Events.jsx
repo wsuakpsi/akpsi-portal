@@ -171,6 +171,7 @@ export default function Events({ profile }) {
             <div className="meta">
               <span className={`pill ${event.category}`}>{event.category}</span>{' '}
               {formatDateTime(event.starts_at)} &middot; {event.points_value} pts
+              {event.location && <> &middot; {event.location}</>}
             </div>
             <div style={{ marginTop: '0.5rem' }}>{renderAction(event)}</div>
           </div>

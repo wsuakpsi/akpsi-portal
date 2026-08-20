@@ -3,9 +3,10 @@ import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester, formatDate, formatDateTime } from '../lib/queries'
+import { getActiveSemester, formatDate, formatDateTime, POINT_CATEGORIES } from '../lib/queries'
 
 const POST_ADJUSTMENT_URL = import.meta.env.VITE_POST_ADJUSTMENT_URL
+const ADJUSTMENT_CATEGORIES = ['adjustment', ...POINT_CATEGORIES, 'rush', 'extra', 'meeting']
 const STATUS_OPTIONS = ['active', 'probation', 'suspended', 'alumni', 'archived']
 
 // Spec 2.4: role flip is brother <-> eboard only (pledge/alumni/archived
@@ -198,6 +199,7 @@ function FirstSemesterField({ member, onChanged }) {
 
 function ManualAdjustmentForm({ member, semester, onAdjusted }) {
   const [delta, setDelta] = useState('')
+  const [category, setCategory] = useState('adjustment')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -211,11 +213,13 @@ function ManualAdjustmentForm({ member, semester, onAdjusted }) {
         memberId: member.id,
         semesterId: semester.id,
         delta: deltaNumber,
+        category,
         note: note.trim(),
       })
       setDelta('')
+      setCategory('adjustment')
       setNote('')
-      toast.success(`Posted ${deltaNumber > 0 ? '+' : ''}${deltaNumber} points for ${member.full_name}.`)
+      toast.success(`Posted ${deltaNumber > 0 ? '+' : ''}${deltaNumber} ${category} points for ${member.full_name}.`)
       onAdjusted()
     } catch (err) {
       toast.error(`Could not post adjustment: ${err.message}`)
@@ -239,6 +243,20 @@ function ManualAdjustmentForm({ member, semester, onAdjusted }) {
           placeholder="e.g. 10 or -10"
           required
         />
+      </div>
+      <div className="form-field">
+        <label htmlFor="adjustment-category">Category</label>
+        <select id="adjustment-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+          {ADJUSTMENT_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <p className="note-text">
+          Only points tagged with a specific category (e.g. fundraising) count toward that category's standing
+          threshold. Use "adjustment" for miscellaneous corrections that shouldn't count toward any category.
+        </p>
       </div>
       <div className="form-field">
         <label htmlFor="adjustment-note">Note (required)</label>
