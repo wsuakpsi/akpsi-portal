@@ -5,6 +5,23 @@ Reference spec: `/Users/samaksh/Downloads/akpsi_platform_reference.md` (the sour
 
 This project started from a gap analysis comparing the codebase against the reference spec, then broke the fixes into 8 phases. **All 8 phases are done.** This file is the handoff for whoever picks up real-world testing and deployment next — see "All 8 phases are now done" near the bottom for what's actually left.
 
+## AWS Account Status (as of 2026-08-20)
+
+**Account created.** A dedicated AKPsi AWS account has been set up — this is separate from any employer/work account. An IAM admin user has been created with an access key (Access Key ID + Secret Access Key saved by Samaksh). **Do not use the old credentials that were in this dev environment** — those point to an unrelated work account (see warning #2 below).
+
+**To finish AWS CLI setup on a new machine:**
+1. Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+2. Install AWS SAM CLI: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
+3. Run `aws configure` and enter the IAM access key ID + secret
+4. Default region: `us-east-1`, default output: `json`
+5. Verify with `aws sts get-caller-identity` — should show the new AKPsi account ID, not a work account
+6. Then follow `DEPLOY.md` section 1: `sam build && sam deploy --guided` from `lambdas/`
+
+**Future handoff note:** The AWS root user was created with Samaksh's personal info and credit card. Before passing the account to the next tech chair:
+- Change the root email to a chapter-owned email in AWS account settings
+- Swap the credit card to the chapter card in Billing → Payment methods
+- Add the next person as an IAM admin user
+
 ## ⚠️ Read this before doing anything
 
 1. **Live database, no local option.** There is no Docker/local Postgres in this environment (`supabase start` will fail). All schema work happens directly against the linked live Supabase project (`rmqgnapkcfbcksbrgnor`, org `wsuakpsi's Project`) via `supabase db push` / `supabase db query --linked "<sql>"`. There is no sandbox — be careful, and check existing data before backfills or destructive-looking migrations (see the proof_url backfill in migration 0004 for the pattern: don't silently fabricate data, use an explicit sentinel and say so).
