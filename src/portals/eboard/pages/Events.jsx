@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
@@ -16,12 +17,10 @@ function AddEventForm({ semester, onClose, onAdded }) {
   const [location, setLocation] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    setError(null)
     try {
       const { error: insertError } = await supabase.from('events').insert({
         semester_id: semester.id,
@@ -33,9 +32,10 @@ function AddEventForm({ semester, onClose, onAdded }) {
         starts_at: new Date(startsAt).toISOString(),
       })
       if (insertError) throw insertError
+      toast.success(`${name} added.`)
       onAdded()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not add event: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -91,7 +91,6 @@ function AddEventForm({ semester, onClose, onAdded }) {
             />
             <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
           </div>
-          {error && <p className="error-text">{error}</p>}
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             <button type="submit" className="btn" disabled={submitting}>
               {submitting ? 'Adding...' : 'Add event'}
@@ -162,6 +161,7 @@ export default function Events() {
       setAttendanceCounts(attendanceMap)
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load events: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -173,12 +173,12 @@ export default function Events() {
 
   async function handleMarkComplete(event) {
     setBusyEventId(event.id)
-    setError(null)
     try {
       await callLambda(COMPLETE_EVENT_URL, { eventId: event.id })
+      toast.success(`${event.name} marked complete.`)
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not mark event complete: ${err.message}`)
     } finally {
       setBusyEventId(null)
     }
@@ -192,12 +192,12 @@ export default function Events() {
     if (!confirmed) return
 
     setBusyEventId(event.id)
-    setError(null)
     try {
       await callLambda(CANCEL_EVENT_URL, { eventId: event.id })
+      toast.success(`${event.name} cancelled.`)
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not cancel event: ${err.message}`)
     } finally {
       setBusyEventId(null)
     }

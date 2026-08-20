@@ -100,7 +100,11 @@ export async function recordAttendanceViaQr(token, memberId) {
   try {
     ({ eventId } = verifyCheckInToken(token));
   } catch (err) {
-    return { success: false, error: `Invalid or expired check-in code: ${err.message}` };
+    const message =
+      err.name === 'TokenExpiredError'
+        ? 'This check-in code has expired. Ask an officer to show the QR code again.'
+        : 'This check-in code is invalid. Try scanning the QR code again.';
+    return { success: false, error: message };
   }
   return recordAttendance(eventId, memberId, 'qr_scan', null);
 }

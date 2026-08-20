@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { getMyProfile } from '../lib/auth'
 
@@ -22,6 +23,7 @@ export default function Login() {
 
     if (signInError) {
       setError(signInError.message)
+      toast.error(signInError.message)
       setLoading(false)
       return
     }
@@ -37,6 +39,7 @@ export default function Login() {
       }
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not sign in: ${err.message}`)
     } finally {
       setLoading(false)
     }

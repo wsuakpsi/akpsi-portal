@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
@@ -54,6 +55,7 @@ export default function Events({ profile }) {
       setMeetingAttendanceByEvent(meetingMap)
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load events: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -66,7 +68,6 @@ export default function Events({ profile }) {
 
   async function handleRsvp(event) {
     setBusyEventId(event.id)
-    setError(null)
     try {
       const { data, error: upsertError } = await supabase
         .from('rsvps')
@@ -78,8 +79,9 @@ export default function Events({ profile }) {
         .single()
       if (upsertError) throw upsertError
       setRsvpByEvent((prev) => ({ ...prev, [event.id]: data }))
+      toast.success(`RSVP'd to ${event.name}.`)
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not RSVP: ${err.message}`)
     } finally {
       setBusyEventId(null)
     }
@@ -100,12 +102,12 @@ export default function Events({ profile }) {
     }
 
     setBusyEventId(event.id)
-    setError(null)
     try {
       await callLambda(RECORD_LATE_CANCEL_URL, { rsvpId: rsvp.id, memberId: profile.id })
       setRsvpByEvent((prev) => ({ ...prev, [event.id]: { ...rsvp, status: 'cancelled' } }))
+      toast.success(isLate ? `RSVP cancelled — a late cancel penalty was posted.` : 'RSVP cancelled.')
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not cancel RSVP: ${err.message}`)
     } finally {
       setBusyEventId(null)
     }

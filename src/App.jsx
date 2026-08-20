@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import { getMyProfile, signOut } from './lib/auth'
 import Login from './pages/Login'
@@ -55,33 +56,33 @@ export default function App() {
       .catch(() => setProfile(null))
   }, [session])
 
+  let content
   if (session === undefined || profile === undefined) {
-    return <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
-  }
-
-  if (!session || !profile) {
-    return <Login />
-  }
-
-  if (profile.status === 'suspended') {
-    return <Suspended />
-  }
-
-  if (PORTAL === 'brother' && (profile.role === 'brother' || profile.role === 'eboard')) {
-    return (
+    content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
+  } else if (!session || !profile) {
+    content = <Login />
+  } else if (profile.status === 'suspended') {
+    content = <Suspended />
+  } else if (PORTAL === 'brother' && (profile.role === 'brother' || profile.role === 'eboard')) {
+    content = (
       <Routes>
         <Route path="/*" element={<BrotherRouter profile={profile} />} />
       </Routes>
     )
-  }
-
-  if (PORTAL === 'eboard' && profile.role === 'eboard') {
-    return (
+  } else if (PORTAL === 'eboard' && profile.role === 'eboard') {
+    content = (
       <Routes>
         <Route path="/*" element={<EboardRouter profile={profile} />} />
       </Routes>
     )
+  } else {
+    content = <AccessDenied />
   }
 
-  return <AccessDenied />
+  return (
+    <>
+      {content}
+      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+    </>
+  )
 }

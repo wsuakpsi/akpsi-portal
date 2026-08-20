@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester } from '../lib/queries'
 
@@ -29,8 +30,10 @@ export default function SheetsSync() {
       localStorage.setItem(LAST_SYNC_STORAGE_KEY, now)
       setLastSyncAt(now)
       setResult(`Synced "${res.sheetTitle}" — ${res.rowsWritten} rows written.`)
+      toast.success(`Synced "${res.sheetTitle}" — ${res.rowsWritten} rows written.`)
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not sync to Sheets: ${err.message}`)
     } finally {
       setRunning(false)
     }

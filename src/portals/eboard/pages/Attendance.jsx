@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
 
@@ -7,21 +8,20 @@ const STATUSES = ['present', 'excused', 'unexcused']
 function CorrectionForm({ row, onClose, onSaved }) {
   const [status, setStatus] = useState(row.status)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    setError(null)
     try {
       const { error: updateError } = await supabase
         .from('meeting_attendance')
         .update({ status })
         .eq('id', row.id)
       if (updateError) throw updateError
+      toast.success('Attendance corrected.')
       onSaved()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not save correction: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -41,7 +41,6 @@ function CorrectionForm({ row, onClose, onSaved }) {
               ))}
             </select>
           </div>
-          {error && <p className="error-text">{error}</p>}
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             <button type="submit" className="btn" disabled={submitting}>
               {submitting ? 'Saving...' : 'Save'}
@@ -89,6 +88,7 @@ export default function Attendance() {
         if (data && data.length > 0) setSelectedMeetingId(data[0].id)
       } catch (err) {
         setError(err.message)
+        toast.error(`Could not load meetings: ${err.message}`)
       } finally {
         setLoading(false)
       }
@@ -99,7 +99,6 @@ export default function Attendance() {
 
   async function loadRows(meetingId) {
     setRowsLoading(true)
-    setError(null)
     try {
       const { data, error: rowsError } = await supabase
         .from('meeting_attendance')
@@ -109,7 +108,7 @@ export default function Attendance() {
       if (rowsError) throw rowsError
       setRows(data || [])
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not load attendance: ${err.message}`)
     } finally {
       setRowsLoading(false)
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { signOut } from '../../../lib/auth'
 import { getActiveSemester } from '../lib/queries'
@@ -14,16 +15,14 @@ function ApplicationForm({ profile, semester, onClose, onSubmitted }) {
   const [reason, setReason] = useState('')
   const [file, setFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!file) {
-      setError('Proof is required.')
+      toast.error('Proof is required.')
       return
     }
     setSubmitting(true)
-    setError(null)
     try {
       const path = `lower-threshold/${profile.id}/${semester.id}-${Date.now()}-${file.name}`
       const { error: uploadError } = await supabase.storage.from('proofs').upload(path, file)
@@ -43,9 +42,10 @@ function ApplicationForm({ profile, semester, onClose, onSubmitted }) {
         throw insertError
       }
 
+      toast.success('Application submitted.')
       onSubmitted()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not submit application: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -70,7 +70,6 @@ function ApplicationForm({ profile, semester, onClose, onSubmitted }) {
           <label htmlFor="proof">Proof (required)</label>
           <input id="proof" type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
         </div>
-        {error && <p className="error-text">{error}</p>}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="submit" className="btn" disabled={submitting || !file}>
             {submitting ? 'Submitting...' : 'Submit application'}
@@ -129,6 +128,7 @@ export default function Profile({ profile }) {
       setBips(bipRows || [])
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load profile: ${err.message}`)
     } finally {
       setLoading(false)
     }

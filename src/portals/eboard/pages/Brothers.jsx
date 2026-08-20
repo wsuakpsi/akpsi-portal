@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester } from '../lib/queries'
 
@@ -12,12 +13,10 @@ function AddBrotherForm({ onClose, onAdded }) {
   const [pledgeClass, setPledgeClass] = useState('')
   const [role, setRole] = useState('brother')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    setError(null)
     try {
       const { error: insertError } = await supabase.from('members').insert({
         full_name: fullName,
@@ -26,9 +25,10 @@ function AddBrotherForm({ onClose, onAdded }) {
         role,
       })
       if (insertError) throw insertError
+      toast.success(`${fullName} added.`)
       onAdded()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not add brother: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -59,7 +59,6 @@ function AddBrotherForm({ onClose, onAdded }) {
               ))}
             </select>
           </div>
-          {error && <p className="error-text">{error}</p>}
           <p className="note-text">
             This creates the members row only. The Supabase Auth account must be created
             separately in the Supabase dashboard by VP Tech, using the same email, so it links
@@ -141,6 +140,7 @@ export default function Brothers() {
       setMeetingCountsByMember(meetingMap)
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load brothers: ${err.message}`)
     } finally {
       setLoading(false)
     }

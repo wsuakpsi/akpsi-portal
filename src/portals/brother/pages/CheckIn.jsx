@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { callLambda } from '../../../lib/lambdas'
 
 const QR_HANDLER_URL = import.meta.env.VITE_RECORD_ATTENDANCE_QR_URL
@@ -18,6 +19,7 @@ export default function CheckIn({ profile }) {
     if (!token) {
       setStatus('error')
       setMessage('This check-in link is missing its code.')
+      toast.error('This check-in link is missing its code.')
       return
     }
 
@@ -25,10 +27,12 @@ export default function CheckIn({ profile }) {
       .then(() => {
         setStatus('success')
         setMessage("You're checked in!")
+        toast.success("You're checked in!")
       })
       .catch((err) => {
         setStatus('error')
         setMessage(err.message)
+        toast.error(err.message)
       })
   }, [token, profile.id])
 

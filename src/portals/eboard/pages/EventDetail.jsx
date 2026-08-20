@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import QRCode from 'qrcode'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDateTime } from '../lib/queries'
@@ -14,17 +15,16 @@ const REMOVE_ATTENDANCE_URL = import.meta.env.VITE_REMOVE_ATTENDANCE_URL
 function RemoveAttendanceForm({ member, onClose, onRemoved }) {
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    setError(null)
     try {
       await onRemoved(note)
+      toast.success(`Removed ${member.full_name}'s attendance.`)
       onClose()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not remove attendance: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -40,7 +40,6 @@ function RemoveAttendanceForm({ member, onClose, onRemoved }) {
             <label htmlFor="note">Correction note (required)</label>
             <textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} required rows={3} />
           </div>
-          {error && <p className="error-text">{error}</p>}
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             <button type="submit" className="btn danger" disabled={submitting || !note.trim()}>
               {submitting ? 'Removing...' : 'Remove attendance'}
@@ -76,6 +75,7 @@ function CheckInQr({ eventId }) {
     } catch (err) {
       setError(err.message)
       setState('error')
+      toast.error(`Could not generate check-in QR: ${err.message}`)
     }
   }
 
@@ -111,7 +111,6 @@ function ManualCheckIn({ eventId, alreadyAttendedIds, onCheckedIn }) {
   const [query, setQuery] = useState('')
   const [members, setMembers] = useState([])
   const [busyId, setBusyId] = useState(null)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
     supabase
@@ -130,13 +129,13 @@ function ManualCheckIn({ eventId, alreadyAttendedIds, onCheckedIn }) {
 
   async function handleCheckIn(member) {
     setBusyId(member.id)
-    setError(null)
     try {
       await callLambda(RECORD_ATTENDANCE_URL, { eventId, memberId: member.id })
       setQuery('')
+      toast.success(`Checked in ${member.full_name}.`)
       onCheckedIn()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not check in ${member.full_name}: ${err.message}`)
     } finally {
       setBusyId(null)
     }
@@ -151,7 +150,6 @@ function ManualCheckIn({ eventId, alreadyAttendedIds, onCheckedIn }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {error && <p className="error-text">{error}</p>}
       {matches.length > 0 && (
         <div style={{ marginTop: '0.5rem' }}>
           {matches.map((m) => (
@@ -201,6 +199,7 @@ export default function EventDetail() {
       setAttendance(attendanceRes.data || [])
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load event: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -213,12 +212,12 @@ export default function EventDetail() {
 
   async function handleMarkComplete() {
     setBusy(true)
-    setError(null)
     try {
       await callLambda(COMPLETE_EVENT_URL, { eventId: id })
+      toast.success('Event marked complete.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not mark event complete: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -231,12 +230,12 @@ export default function EventDetail() {
     )
     if (!confirmed) return
     setBusy(true)
-    setError(null)
     try {
       await callLambda(CANCEL_EVENT_URL, { eventId: id })
+      toast.success('Event cancelled.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not cancel event: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -257,7 +256,6 @@ export default function EventDetail() {
     <div className="eboard-main">
       <p><Link to="/eboard/events">&larr; Back to events</Link></p>
       <h1>{event.name}</h1>
-      {error && <p className="error-text">{error}</p>}
 
       <div className="card">
         <table>

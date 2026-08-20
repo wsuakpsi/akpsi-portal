@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDateTime } from '../lib/queries'
@@ -35,6 +36,7 @@ export default function Forms({ profile }) {
       setThresholdApps(ltaRes.data || [])
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load forms: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -46,12 +48,12 @@ export default function Forms({ profile }) {
 
   async function handleMissingMeetingReview(form, decision) {
     setBusyId(form.id)
-    setError(null)
     try {
       await callLambda(REVIEW_FORM_URL, { formId: form.id, decision })
+      toast.success(`Missing meeting form ${decision}.`)
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not review form: ${err.message}`)
     } finally {
       setBusyId(null)
     }
@@ -59,7 +61,6 @@ export default function Forms({ profile }) {
 
   async function handleThresholdReview(app, status) {
     setBusyId(app.id)
-    setError(null)
     try {
       const { error: updateError } = await supabase
         .from('lower_threshold_applications')
@@ -74,9 +75,10 @@ export default function Forms({ profile }) {
       })
       if (notifError) throw notifError
 
+      toast.success(`Application ${status}.`)
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not review application: ${err.message}`)
     } finally {
       setBusyId(null)
     }

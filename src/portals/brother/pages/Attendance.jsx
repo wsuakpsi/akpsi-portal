@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { formatDateTime } from '../lib/queries'
 
@@ -6,12 +7,10 @@ function ExcuseForm({ event, onClose, onSubmitted }) {
   const [reason, setReason] = useState('')
   const [file, setFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    setError(null)
     try {
       let proofUrl = null
       if (file) {
@@ -30,9 +29,10 @@ function ExcuseForm({ event, onClose, onSubmitted }) {
       })
       if (insertError) throw insertError
 
+      toast.success('Excuse form submitted.')
       onSubmitted()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not submit excuse form: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -56,7 +56,6 @@ function ExcuseForm({ event, onClose, onSubmitted }) {
           <label htmlFor="proof">Proof (optional)</label>
           <input id="proof" type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
         </div>
-        {error && <p className="error-text">{error}</p>}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="submit" className="btn" disabled={submitting}>
             {submitting ? 'Submitting...' : 'Submit'}
@@ -115,6 +114,7 @@ export default function Attendance({ profile }) {
       setFormsByEvent(formMap)
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load attendance: ${err.message}`)
     } finally {
       setLoading(false)
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDate, formatDateTime } from '../lib/queries'
@@ -16,7 +17,6 @@ const STATUS_OPTIONS = ['active', 'probation', 'suspended', 'alumni', 'archived'
 function RoleFlip({ member, onChanged }) {
   const [position, setPosition] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handlePromote(e) {
     e.preventDefault()
@@ -26,7 +26,6 @@ function RoleFlip({ member, onChanged }) {
     )
     if (!confirmed) return
     setBusy(true)
-    setError(null)
     try {
       const { error: updateError } = await supabase
         .from('members')
@@ -40,9 +39,10 @@ function RoleFlip({ member, onChanged }) {
       })
       if (notifError) throw notifError
       setPosition('')
+      toast.success(`${member.full_name} promoted to E-Board.`)
       onChanged()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not promote ${member.full_name}: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -54,7 +54,6 @@ function RoleFlip({ member, onChanged }) {
     )
     if (!confirmed) return
     setBusy(true)
-    setError(null)
     try {
       const { error: updateError } = await supabase
         .from('members')
@@ -67,9 +66,10 @@ function RoleFlip({ member, onChanged }) {
         body: "You've been moved back to brother status.",
       })
       if (notifError) throw notifError
+      toast.success(`${member.full_name} demoted to brother.`)
       onChanged()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not demote ${member.full_name}: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -81,7 +81,6 @@ function RoleFlip({ member, onChanged }) {
 
   return (
     <div>
-      {error && <p className="error-text">{error}</p>}
       {member.role === 'brother' && (
         <form onSubmit={handlePromote}>
           <div className="form-field">
@@ -112,18 +111,17 @@ function RoleFlip({ member, onChanged }) {
 function StatusChange({ member, onChanged }) {
   const [status, setStatus] = useState(member.status)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSave() {
     if (status === member.status) return
     setBusy(true)
-    setError(null)
     try {
       const { error: updateError } = await supabase.from('members').update({ status }).eq('id', member.id)
       if (updateError) throw updateError
+      toast.success(`${member.full_name}'s status set to ${status}.`)
       onChanged()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not update status: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -131,7 +129,6 @@ function StatusChange({ member, onChanged }) {
 
   return (
     <div>
-      {error && <p className="error-text">{error}</p>}
       <div className="form-field">
         <label htmlFor="status">Status</label>
         <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -155,22 +152,21 @@ function StatusChange({ member, onChanged }) {
 function FirstSemesterField({ member, onChanged }) {
   const [value, setValue] = useState(member.first_semester_initiated || '')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSave() {
     const next = value.trim() || null
     if (next === (member.first_semester_initiated || null)) return
     setBusy(true)
-    setError(null)
     try {
       const { error: updateError } = await supabase
         .from('members')
         .update({ first_semester_initiated: next })
         .eq('id', member.id)
       if (updateError) throw updateError
+      toast.success('First semester initiated saved.')
       onChanged()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not save first semester: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -178,7 +174,6 @@ function FirstSemesterField({ member, onChanged }) {
 
   return (
     <div>
-      {error && <p className="error-text">{error}</p>}
       <div className="form-field">
         <label htmlFor="first-semester">First semester initiated</label>
         <input
@@ -205,14 +200,12 @@ function ManualAdjustmentForm({ member, semester, onAdjusted }) {
   const [delta, setDelta] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     const deltaNumber = Number.parseInt(delta, 10)
     if (!Number.isInteger(deltaNumber) || !note.trim()) return
     setBusy(true)
-    setError(null)
     try {
       await callLambda(POST_ADJUSTMENT_URL, {
         memberId: member.id,
@@ -222,9 +215,10 @@ function ManualAdjustmentForm({ member, semester, onAdjusted }) {
       })
       setDelta('')
       setNote('')
+      toast.success(`Posted ${deltaNumber > 0 ? '+' : ''}${deltaNumber} points for ${member.full_name}.`)
       onAdjusted()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not post adjustment: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -234,7 +228,6 @@ function ManualAdjustmentForm({ member, semester, onAdjusted }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {error && <p className="error-text">{error}</p>}
       <div className="form-field">
         <label htmlFor="delta">Points delta</label>
         <input
@@ -268,7 +261,6 @@ function BipActions({ bip, onChanged }) {
   const [acting, setActing] = useState(null) // null | 'resolved' | 'escalated'
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   if (bip.status !== 'open') return null
 
@@ -276,7 +268,6 @@ function BipActions({ bip, onChanged }) {
     e.preventDefault()
     if (!note.trim()) return
     setBusy(true)
-    setError(null)
     try {
       const { error: updateError } = await supabase
         .from('brother_improvement_plans')
@@ -289,11 +280,12 @@ function BipActions({ bip, onChanged }) {
         body: note.trim(),
       })
       if (notifError) throw notifError
+      toast.success(`Improvement plan ${acting}.`)
       setActing(null)
       setNote('')
       onChanged()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not ${acting === 'resolved' ? 'resolve' : 'escalate'} improvement plan: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -314,7 +306,6 @@ function BipActions({ bip, onChanged }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {error && <p className="error-text">{error}</p>}
       <div className="form-field">
         <label htmlFor={`bip-note-${bip.id}`}>
           {acting === 'resolved' ? 'Resolution note (required)' : 'Escalation note (required)'}
@@ -338,13 +329,11 @@ function CreateBipForm({ member, createdBy, onClose, onCreated }) {
   const [requirements, setRequirements] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!description.trim() || !requirements.trim() || !dueDate) return
     setBusy(true)
-    setError(null)
     try {
       const { error: insertError } = await supabase.from('brother_improvement_plans').insert({
         member_id: member.id,
@@ -360,9 +349,10 @@ function CreateBipForm({ member, createdBy, onClose, onCreated }) {
         body: `An improvement plan was opened for you, due ${dueDate}. Requirements: ${requirements.trim()}`,
       })
       if (notifError) throw notifError
+      toast.success('Improvement plan created.')
       onCreated()
     } catch (err) {
-      setError(err.message)
+      toast.error(`Could not create improvement plan: ${err.message}`)
     } finally {
       setBusy(false)
     }
@@ -370,7 +360,6 @@ function CreateBipForm({ member, createdBy, onClose, onCreated }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {error && <p className="error-text">{error}</p>}
       <div className="form-field">
         <label htmlFor="bip-description">Description</label>
         <textarea id="bip-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} required />
@@ -451,6 +440,7 @@ export default function BrotherDetail({ profile }) {
       setBipRows(bipRes.data || [])
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load brother details: ${err.message}`)
     } finally {
       setLoading(false)
     }

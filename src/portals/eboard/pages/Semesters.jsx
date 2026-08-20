@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDate } from '../lib/queries'
@@ -10,16 +11,15 @@ function CreateSemesterForm({ onCreated }) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
 
   async function submit(confirm) {
     setBusy(true)
-    setError(null)
     try {
       const result = await callLambda(CREATE_SEMESTER_URL, { name, startDate, endDate, confirm })
       setName('')
       setStartDate('')
       setEndDate('')
+      toast.success(`${result.semester.name} created and activated.`)
       onCreated(result.semester)
     } catch (err) {
       if (err.message === 'active_semester_has_scheduled_events') {
@@ -38,7 +38,7 @@ function CreateSemesterForm({ onCreated }) {
           return
         }
       } else {
-        setError(err.message)
+        toast.error(`Could not create semester: ${err.message}`)
       }
     } finally {
       setBusy(false)
@@ -53,7 +53,6 @@ function CreateSemesterForm({ onCreated }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {error && <p className="error-text">{error}</p>}
       <div className="form-field">
         <label htmlFor="semester-name">Name</label>
         <input id="semester-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Spring 2027" required />
@@ -90,6 +89,7 @@ export default function Semesters() {
       setSemesters(data || [])
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load semesters: ${err.message}`)
     } finally {
       setLoading(false)
     }

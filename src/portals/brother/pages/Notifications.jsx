@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 
 export default function Notifications({ profile }) {
@@ -19,6 +20,7 @@ export default function Notifications({ profile }) {
       setRows(data || [])
     } catch (err) {
       setError(err.message)
+      toast.error(`Could not load notifications: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -34,7 +36,7 @@ export default function Notifications({ profile }) {
     // the round trip. RLS (notifications_update_own) is the real guard.
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, read: true } : r)))
     const { error: updateError } = await supabase.from('notifications').update({ read: true }).eq('id', id)
-    if (updateError) setError(updateError.message)
+    if (updateError) toast.error(`Could not mark notification as read: ${updateError.message}`)
   }
 
   const unreadCount = rows.filter((r) => !r.read).length

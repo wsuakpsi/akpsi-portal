@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
 
@@ -72,7 +73,10 @@ export default function Home({ profile }) {
           setRecentAttendance(recentMeetings)
         }
       } catch (err) {
-        if (!cancelled) setError(err.message)
+        if (!cancelled) {
+          setError(err.message)
+          toast.error(`Could not load home page: ${err.message}`)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }

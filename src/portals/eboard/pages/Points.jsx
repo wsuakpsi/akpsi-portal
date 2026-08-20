@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, POINT_CATEGORIES } from '../lib/queries'
@@ -118,7 +119,10 @@ export default function Points() {
 
         if (!cancelled) setRows(result)
       } catch (err) {
-        if (!cancelled) setError(err.message)
+        if (!cancelled) {
+          setError(err.message)
+          toast.error(`Could not load points: ${err.message}`)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -137,6 +141,10 @@ export default function Points() {
     try {
       const result = await callLambda(CALCULATE_STANDING_URL, { semesterId: semester.id, confirm })
       setCalcResult(result)
+      toast.success('Standing calculated and notifications sent.')
+      if (result.sheetsSync && !result.sheetsSync.success) {
+        toast.error(`Sheets archive sync failed: ${result.sheetsSync.error}`)
+      }
     } catch (err) {
       if (err.message === 'already_calculated') {
         const reconfirmed = window.confirm(
@@ -150,6 +158,7 @@ export default function Points() {
         }
       } else {
         setCalcError(err.message)
+        toast.error(`Could not calculate standing: ${err.message}`)
       }
     } finally {
       setCalculating(false)

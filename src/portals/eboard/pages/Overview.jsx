@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
 
@@ -137,7 +138,10 @@ export default function Overview() {
           setRecentMeetings(recentMeetingsWithCounts)
         }
       } catch (err) {
-        if (!cancelled) setError(err.message)
+        if (!cancelled) {
+          setError(err.message)
+          toast.error(`Could not load overview: ${err.message}`)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
