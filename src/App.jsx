@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import { getMyProfile, signOut } from './lib/auth'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
 import CheckInQrPage from './portals/eboard/pages/CheckInQrPage'
@@ -56,6 +57,16 @@ export default function App() {
       .then(setProfile)
       .catch(() => setProfile(null))
   }, [session])
+
+  // Handle invite/reset links — must be accessible before auth resolves
+  if (window.location.hash.includes('type=invite') || window.location.hash.includes('type=recovery')) {
+    return (
+      <>
+        <ResetPassword />
+        <Toaster position="top-center" toastOptions={{ duration: 3000, error: { duration: 2500 } }} />
+      </>
+    )
+  }
 
   let content
   if (session === undefined || profile === undefined) {
