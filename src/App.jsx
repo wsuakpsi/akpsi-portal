@@ -58,21 +58,16 @@ export default function App() {
       .catch(() => setProfile(null))
   }, [session])
 
-  // Handle invite/reset links — must be accessible before auth resolves
-  if (window.location.hash.includes('type=invite') || window.location.hash.includes('type=recovery')) {
-    return (
-      <>
-        <ResetPassword />
-        <Toaster position="top-center" toastOptions={{ duration: 3000, error: { duration: 2500 } }} />
-      </>
-    )
-  }
-
   let content
   if (session === undefined || profile === undefined) {
     content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
   } else if (!session || !profile) {
-    content = <Login />
+    content = (
+      <Routes>
+        <Route path="/set-password" element={<ResetPassword />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    )
   } else if (profile.status === 'suspended') {
     content = <Suspended />
   } else if (PORTAL === 'brother' && (profile.role === 'brother' || profile.role === 'eboard')) {
