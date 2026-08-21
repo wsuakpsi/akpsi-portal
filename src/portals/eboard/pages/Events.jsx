@@ -8,7 +8,6 @@ import { getActiveSemester } from '../lib/queries'
 const CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra', 'meeting']
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
-const ADD_TO_CALENDAR_URL = import.meta.env.VITE_ADD_TO_CALENDAR_URL
 
 function AddEventForm({ semester, onClose, onAdded }) {
   const [name, setName] = useState('')
@@ -17,7 +16,6 @@ function AddEventForm({ semester, onClose, onAdded }) {
   const [isRequired, setIsRequired] = useState(false)
   const [location, setLocation] = useState('')
   const [startsAt, setStartsAt] = useState('')
-  const [durationMinutes, setDurationMinutes] = useState(120)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
@@ -34,24 +32,6 @@ function AddEventForm({ semester, onClose, onAdded }) {
         starts_at: new Date(startsAt).toISOString(),
       })
       if (insertError) throw insertError
-
-      // Best-effort: sync to Google Calendar. If this fails, the event is
-      // still in the DB — just warn the user rather than treating it as fatal.
-      if (ADD_TO_CALENDAR_URL) {
-        try {
-          await callLambda(ADD_TO_CALENDAR_URL, {
-            name,
-            startsAt: new Date(startsAt).toISOString(),
-            location: location || null,
-            category,
-            pointsValue: Number(pointsValue) || 0,
-            durationMinutes: Number(durationMinutes) || 120,
-          })
-        } catch (calErr) {
-          toast.error(`Event saved, but calendar sync failed: ${calErr.message}`)
-        }
-      }
-
       toast.success(`${name} added.`)
       onAdded()
     } catch (err) {
@@ -100,17 +80,6 @@ function AddEventForm({ semester, onClose, onAdded }) {
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
               required
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="duration">Duration (minutes)</label>
-            <input
-              id="duration"
-              type="number"
-              min="15"
-              step="15"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
             />
           </div>
           <div className="form-field checkbox">
