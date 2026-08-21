@@ -24,7 +24,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const { error: insertError } = await supabase.from('events').insert({
+      const { data: insertedEvent, error: insertError } = await supabase.from('events').insert({
         semester_id: semester.id,
         name,
         category,
@@ -32,7 +32,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
         is_required: isRequired,
         location: location || null,
         starts_at: new Date(startsAt).toISOString(),
-      })
+      }).select('id').single()
       if (insertError) throw insertError
 
       // Best-effort: sync to Google Calendar. If this fails, the event is
@@ -48,12 +48,11 @@ function AddEventForm({ semester, onClose, onAdded }) {
             durationMinutes: Number(durationMinutes) || 120,
           })
           if (calResult.calendarEventId) {
-            await supabase
+            const { error: calIdError } = await supabase
               .from('events')
               .update({ google_calendar_event_id: calResult.calendarEventId })
-              .eq('semester_id', semester.id)
-              .eq('name', name)
-              .eq('starts_at', new Date(startsAt).toISOString())
+              .eq('id', insertedEvent.id)
+            if (calIdError) throw calIdError
           }
         } catch (calErr) {
           toast.error(`Event saved, but calendar sync failed: ${calErr.message}`)
