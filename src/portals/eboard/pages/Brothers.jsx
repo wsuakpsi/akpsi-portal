@@ -73,7 +73,7 @@ export default function Brothers() {
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [showInviteForm, setShowAddForm] = useState(false)
+  const [showInviteForm, setShowInviteForm] = useState(false)
 
   async function load() {
     setLoading(true)
