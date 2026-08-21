@@ -1,9 +1,22 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
 import { wrapEboardHandler } from './lib/httpResponse.js';
 
-// points_ledger.category is always 'adjustment' for manually-posted rows;
-// there is no category param — the note is where the officer explains it.
-export async function postManualPointAdjustment(memberId, semesterId, delta, note, createdBy) {
+// points_ledger.category defaults to 'adjustment' for manually-posted rows,
+// but an officer can tag a specific category (e.g. 'fundraising') so the
+// points count toward that category's standing threshold, not just the
+// overall total — see calculateEndOfSemesterStanding.js.
+const ALLOWED_CATEGORIES = [
+  'adjustment',
+  'professional',
+  'service',
+  'fundraising',
+  'social',
+  'rush',
+  'extra',
+  'meeting',
+];
+
+export async function postManualPointAdjustment(memberId, semesterId, delta, note, createdBy, category = 'adjustment') {
   if (!memberId || !semesterId || !createdBy) {
     return { success: false, error: 'memberId, semesterId, and createdBy are required' };
   }
@@ -13,13 +26,16 @@ export async function postManualPointAdjustment(memberId, semesterId, delta, not
   if (!Number.isInteger(delta)) {
     return { success: false, error: 'delta must be an integer' };
   }
+  if (!ALLOWED_CATEGORIES.includes(category)) {
+    return { success: false, error: `category must be one of: ${ALLOWED_CATEGORIES.join(', ')}` };
+  }
 
   const supabase = getSupabaseClient();
 
   const { error: insertError } = await supabase.from('points_ledger').insert({
     member_id: memberId,
     semester_id: semesterId,
-    category: 'adjustment',
+    category,
     delta,
     note,
     created_by: createdBy,
@@ -29,7 +45,7 @@ export async function postManualPointAdjustment(memberId, semesterId, delta, not
   const { error: notifError } = await supabase.from('notifications').insert({
     member_id: memberId,
     title: 'Manual point adjustment',
-    body: `A manual point adjustment of ${delta > 0 ? '+' : ''}${delta} was applied: ${note}`,
+    body: `A manual point adjustment of ${delta > 0 ? '+' : ''}${delta} (${category}) was applied: ${note}`,
   });
   if (notifError) return { success: false, error: notifError.message };
 
@@ -42,4 +58,5 @@ export const handler = wrapEboardHandler(postManualPointAdjustment, (payload, ca
   payload.delta,
   payload.note,
   caller.id,
+  payload.category || 'adjustment',
 ]);
