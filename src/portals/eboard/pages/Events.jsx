@@ -44,8 +44,10 @@ function AddEventForm({ semester, onClose, onAdded }) {
             startsAt: new Date(startsAt).toISOString(),
             location: location || null,
             category,
-            pointsValue: Number(pointsValue) || 0,
             durationMinutes: Number(durationMinutes) || 120,
+            isRequired,
+            description: null,
+            dressCode: null,
           })
           if (calResult.calendarEventId) {
             const { error: calIdError } = await supabase
