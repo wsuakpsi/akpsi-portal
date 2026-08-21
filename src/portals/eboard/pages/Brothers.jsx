@@ -2,33 +2,29 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
+import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester } from '../lib/queries'
+
+const INVITE_BROTHER_URL = import.meta.env.VITE_INVITE_BROTHER_URL
 
 const ROLES = ['brother', 'eboard']
 const STATUSES = ['active', 'probation', 'suspended']
 
-function AddBrotherForm({ onClose, onAdded }) {
+function InviteBrotherForm({ onClose, onAdded }) {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [pledgeClass, setPledgeClass] = useState('')
-  const [role, setRole] = useState('brother')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const { error: insertError } = await supabase.from('members').insert({
-        full_name: fullName,
-        email,
-        pledge_class: pledgeClass,
-        role,
-      })
-      if (insertError) throw insertError
-      toast.success(`${fullName} added.`)
+      await callLambda(INVITE_BROTHER_URL, { email, fullName, pledgeClass })
+      toast.success(`Invite sent to ${fullName}.`)
       onAdded()
     } catch (err) {
-      toast.error(`Could not add brother: ${err.message}`)
+      toast.error(`Could not invite brother: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
@@ -37,7 +33,7 @@ function AddBrotherForm({ onClose, onAdded }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Add brother</h2>
+        <h2>Invite brother</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-field">
             <label htmlFor="full_name">Full name</label>
@@ -51,22 +47,12 @@ function AddBrotherForm({ onClose, onAdded }) {
             <label htmlFor="pledge_class">Pledge class</label>
             <input id="pledge_class" type="text" value={pledgeClass} onChange={(e) => setPledgeClass(e.target.value)} required />
           </div>
-          <div className="form-field">
-            <label htmlFor="role">Role</label>
-            <select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
           <p className="note-text">
-            This creates the members row only. The Supabase Auth account must be created
-            separately in the Supabase dashboard by VP Tech, using the same email, so it links
-            to this member.
+            Creates their profile and sends an invite email. They'll set their own password when they click the link.
           </p>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? 'Adding...' : 'Add brother'}
+              {submitting ? 'Sending invite...' : 'Send invite'}
             </button>
             <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
               Cancel
@@ -87,7 +73,7 @@ export default function Brothers() {
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showInviteForm, setShowAddForm] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -227,7 +213,7 @@ export default function Brothers() {
         </select>
         <div className="spacer" />
         <button className="btn secondary" onClick={handleExport}>Export</button>
-        <button className="btn" onClick={() => setShowAddForm(true)}>+ Add brother</button>
+        <button className="btn" onClick={() => setShowInviteForm(true)}>+ Invite brother</button>
       </div>
 
       <div className="card">
@@ -288,8 +274,8 @@ export default function Brothers() {
         )}
       </div>
 
-      {showAddForm && (
-        <AddBrotherForm
+      {showInviteForm && (
+        <InviteBrotherForm
           onClose={() => setShowAddForm(false)}
           onAdded={() => {
             setShowAddForm(false)
