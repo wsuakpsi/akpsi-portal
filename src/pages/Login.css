@@ -260,6 +260,25 @@
   to { transform: rotate(360deg); }
 }
 
+/* Forgot password link */
+.login-forgot {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.82rem;
+  color: #888;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+}
+
+.login-forgot:hover {
+  color: #0a1628;
+}
+
 /* Footer */
 .login-footer {
   margin-top: 1.25rem;

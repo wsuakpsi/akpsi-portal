@@ -17,6 +17,8 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [forgotMode, setForgotMode] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -31,6 +33,25 @@ export default function Login() {
     }
 
     setLoading(false)
+  }
+
+  async function handleForgot(e) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/set-password`,
+    })
+
+    setLoading(false)
+
+    if (resetError) {
+      setError(resetError.message)
+      toast.error(resetError.message)
+    } else {
+      setResetSent(true)
+    }
   }
 
   return (
@@ -60,46 +81,89 @@ export default function Login() {
         </div>
 
         <div className="login-card">
-          <h1 className="login-card-title">Sign in</h1>
-          <p className="login-card-sub">Use your chapter account to continue.</p>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="login-field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                autoComplete="email"
-                autoCapitalize="none"
-                required
-              />
-            </div>
-
-            <div className="login-field">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                required
-              />
-            </div>
-
-            {error && <div className="login-error">{error}</div>}
-
-            <button type="submit" className="login-btn" disabled={loading}>
-              <span className="login-btn-inner">
-                {loading && <span className="login-spinner" />}
-                {loading ? 'Signing in…' : 'Sign in'}
-              </span>
-            </button>
-          </form>
+          {forgotMode ? (
+            resetSent ? (
+              <>
+                <h1 className="login-card-title">Check your email</h1>
+                <p className="login-card-sub">We sent a password reset link to <strong>{email}</strong>. Check your spam folder if you don't see it.</p>
+                <button type="button" className="login-btn" onClick={() => { setForgotMode(false); setResetSent(false) }}>
+                  Back to sign in
+                </button>
+              </>
+            ) : (
+              <>
+                <h1 className="login-card-title">Reset password</h1>
+                <p className="login-card-sub">Enter your email and we'll send you a reset link.</p>
+                <form onSubmit={handleForgot} noValidate>
+                  <div className="login-field">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      required
+                    />
+                  </div>
+                  {error && <div className="login-error">{error}</div>}
+                  <button type="submit" className="login-btn" disabled={loading}>
+                    <span className="login-btn-inner">
+                      {loading && <span className="login-spinner" />}
+                      {loading ? 'Sending…' : 'Send reset link'}
+                    </span>
+                  </button>
+                </form>
+                <button type="button" className="login-forgot" onClick={() => { setForgotMode(false); setError(null) }}>
+                  Back to sign in
+                </button>
+              </>
+            )
+          ) : (
+            <>
+              <h1 className="login-card-title">Sign in</h1>
+              <p className="login-card-sub">Use your chapter account to continue.</p>
+              <form onSubmit={handleSubmit} noValidate>
+                <div className="login-field">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    required
+                  />
+                </div>
+                <div className="login-field">
+                  <label htmlFor="password">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+                {error && <div className="login-error">{error}</div>}
+                <button type="submit" className="login-btn" disabled={loading}>
+                  <span className="login-btn-inner">
+                    {loading && <span className="login-spinner" />}
+                    {loading ? 'Signing in…' : 'Sign in'}
+                  </span>
+                </button>
+              </form>
+              <button type="button" className="login-forgot" onClick={() => { setForgotMode(true); setError(null) }}>
+                Forgot password?
+              </button>
+            </>
+          )}
         </div>
 
         <p className="login-footer">Alpha Kappa Psi · Chapter Portal</p>

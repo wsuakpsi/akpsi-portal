@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import { getMyProfile, signOut } from './lib/auth'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
 import CheckInQrPage from './portals/eboard/pages/CheckInQrPage'
@@ -61,7 +62,12 @@ export default function App() {
   if (session === undefined || profile === undefined) {
     content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
   } else if (!session || !profile) {
-    content = <Login />
+    content = (
+      <Routes>
+        <Route path="/set-password" element={<ResetPassword />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    )
   } else if (profile.status === 'suspended') {
     content = <Suspended />
   } else if (PORTAL === 'brother' && (profile.role === 'brother' || profile.role === 'eboard')) {

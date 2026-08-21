@@ -30,6 +30,10 @@ Parameters:
     Type: String
     Default: ''
     Description: ID of the shared Google Calendar events should be added to (e.g. abc123@group.calendar.google.com). Leave blank to disable calendar sync.
+  BrotherPortalUrl:
+    Type: String
+    Default: 'https://brother.wsuakpsi.com'
+    Description: Public URL of the brother portal — used as the redirectTo in invite emails.
   EnableNightlySync:
     Type: String
     AllowedValues: ['true', 'false']
@@ -59,8 +63,16 @@ Globals:
         GOOGLE_SERVICE_ACCOUNT_JSON: !Ref GoogleServiceAccountJson
         GOOGLE_SHEETS_SPREADSHEET_ID: !Ref GoogleSheetsSpreadsheetId
         GOOGLE_CALENDAR_ID: !Ref GoogleCalendarId
+        BROTHER_PORTAL_URL: !Ref BrotherPortalUrl
 
 Resources:
+  InviteBrotherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/inviteBrother.handler
+      Events:
+        Api: { Type: HttpApi, Properties: { Path: /invite-brother, Method: POST } }
+
   AddEventToCalendarFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -187,4 +199,5 @@ Outputs:
       /remove-attendance=VITE_REMOVE_ATTENDANCE_URL,
       /record-late-cancel=VITE_RECORD_LATE_CANCEL_URL,
       /sync-sheets=VITE_SHEETS_SYNC_URL,
-      /add-to-calendar=VITE_ADD_TO_CALENDAR_URL
+      /add-to-calendar=VITE_ADD_TO_CALENDAR_URL,
+      /invite-brother=VITE_INVITE_BROTHER_URL
