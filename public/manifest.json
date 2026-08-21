@@ -1,0 +1,15 @@
+{
+  "name": "AKΨ Portal",
+  "short_name": "AKΨ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f4f6",
+  "theme_color": "#0a1628",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "any",
+      "type": "image/jpeg"
+    }
+  ]
+}
