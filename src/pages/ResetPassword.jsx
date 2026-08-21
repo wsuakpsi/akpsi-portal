@@ -21,7 +21,11 @@ export default function ResetPassword() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Supabase fires PASSWORD_RECOVERY when the invite/reset token in the URL is valid
+    // Check if Supabase already processed the token before this component mounted
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true)
+    })
+
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setReady(true)
