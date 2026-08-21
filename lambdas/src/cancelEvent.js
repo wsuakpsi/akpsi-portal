@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
 import { wrapEboardHandler } from './lib/httpResponse.js';
+import { getCalendarClient } from './lib/googleCalendarClient.js';
 
 // Spec 7.4 cancellation cascade: cancelling a required event voids any
 // already-approved missing_meeting_forms tied to it (the excused absence is
@@ -12,7 +13,7 @@ export async function cancelEvent(eventId) {
 
   const { data: eventRow, error: eventFetchError } = await supabase
     .from('events')
-    .select('id, name, status')
+    .select('id, name, status, google_calendar_event_id')
     .eq('id', eventId)
     .maybeSingle();
   if (eventFetchError) return { success: false, error: eventFetchError.message };
@@ -51,6 +52,20 @@ export async function cancelEvent(eventId) {
     }));
     const { error: notifError } = await supabase.from('notifications').insert(notifications);
     if (notifError) return { success: false, error: notifError.message };
+  }
+
+  // Best-effort: remove from Google Calendar. A failure here does not roll
+  // back the cancellation — the event is already cancelled in the DB.
+  if (eventRow.google_calendar_event_id && process.env.GOOGLE_CALENDAR_ID) {
+    try {
+      const calendar = await getCalendarClient();
+      await calendar.events.delete({
+        calendarId: process.env.GOOGLE_CALENDAR_ID,
+        eventId: eventRow.google_calendar_event_id,
+      });
+    } catch {
+      // swallow — calendar sync is non-blocking
+    }
   }
 
   return { success: true, formsVoided: approvedForms.length };
