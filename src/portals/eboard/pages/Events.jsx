@@ -39,7 +39,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
       // still in the DB — just warn the user rather than treating it as fatal.
       if (ADD_TO_CALENDAR_URL) {
         try {
-          await callLambda(ADD_TO_CALENDAR_URL, {
+          const calResult = await callLambda(ADD_TO_CALENDAR_URL, {
             name,
             startsAt: new Date(startsAt).toISOString(),
             location: location || null,
@@ -47,6 +47,14 @@ function AddEventForm({ semester, onClose, onAdded }) {
             pointsValue: Number(pointsValue) || 0,
             durationMinutes: Number(durationMinutes) || 120,
           })
+          if (calResult.calendarEventId) {
+            await supabase
+              .from('events')
+              .update({ google_calendar_event_id: calResult.calendarEventId })
+              .eq('semester_id', semester.id)
+              .eq('name', name)
+              .eq('starts_at', new Date(startsAt).toISOString())
+          }
         } catch (calErr) {
           toast.error(`Event saved, but calendar sync failed: ${calErr.message}`)
         }
