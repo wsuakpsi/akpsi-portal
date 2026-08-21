@@ -52,7 +52,8 @@ function AddEventForm({ semester, onClose, onAdded }) {
         }
       }
 
-      toast.success(`${name} added.`)
+      const calendarNote = ADD_TO_CALENDAR_URL ? ' and added to Google Calendar' : ''
+      toast.success(`${name} added${calendarNote}.`)
       onAdded()
     } catch (err) {
       toast.error(`Could not add event: ${err.message}`)
