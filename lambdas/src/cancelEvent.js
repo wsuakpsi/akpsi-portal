@@ -56,6 +56,8 @@ export async function cancelEvent(eventId) {
 
   // Best-effort: remove from Google Calendar. A failure here does not roll
   // back the cancellation — the event is already cancelled in the DB.
+  let calendarDeleted = false;
+  let calendarError = null;
   if (eventRow.google_calendar_event_id && process.env.GOOGLE_CALENDAR_ID) {
     try {
       const calendar = await getCalendarClient();
@@ -63,12 +65,13 @@ export async function cancelEvent(eventId) {
         calendarId: process.env.GOOGLE_CALENDAR_ID,
         eventId: eventRow.google_calendar_event_id,
       });
-    } catch {
-      // swallow — calendar sync is non-blocking
+      calendarDeleted = true;
+    } catch (err) {
+      calendarError = err.message || 'Unknown error';
     }
   }
 
-  return { success: true, formsVoided: approvedForms.length };
+  return { success: true, formsVoided: approvedForms.length, calendarDeleted, calendarError };
 }
 
 export const handler = wrapEboardHandler(cancelEvent, (payload) => [payload.eventId]);

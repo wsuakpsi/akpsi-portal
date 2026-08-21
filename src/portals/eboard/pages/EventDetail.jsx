@@ -222,8 +222,10 @@ export default function EventDetail() {
     if (!confirmed) return
     setBusy(true)
     try {
-      await callLambda(CANCEL_EVENT_URL, { eventId: id })
+      const result = await callLambda(CANCEL_EVENT_URL, { eventId: id })
       toast.success('Event cancelled.')
+      if (result.calendarDeleted) toast.success('Removed from Google Calendar.')
+      if (result.calendarError) toast.error(`Calendar removal failed: ${result.calendarError}`)
       await load()
     } catch (err) {
       toast.error(`Could not cancel event: ${err.message}`)
