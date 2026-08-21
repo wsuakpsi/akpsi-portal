@@ -276,9 +276,9 @@ export default function Brothers() {
 
       {showInviteForm && (
         <InviteBrotherForm
-          onClose={() => setShowAddForm(false)}
+          onClose={() => setShowInviteForm(false)}
           onAdded={() => {
-            setShowAddForm(false)
+            setShowInviteForm(false)
             load()
           }}
         />

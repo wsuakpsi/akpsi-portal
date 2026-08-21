@@ -10,25 +10,20 @@ export async function inviteBrother(email, fullName, pledgeClass) {
 
   const supabase = getSupabaseClient();
 
-  // Check if a members row already exists for this email
-  const { data: existing } = await supabase
-    .from('members')
-    .select('id, email')
-    .eq('email', email)
-    .maybeSingle();
+  // Check if already a member or already has a pending invite
+  const [{ data: existingMember }, { data: existingInvite }] = await Promise.all([
+    supabase.from('members').select('email').eq('email', email).maybeSingle(),
+    supabase.from('pending_invites').select('email').eq('email', email).maybeSingle(),
+  ]);
 
-  if (existing) {
-    return { success: false, error: `A member with email ${email} already exists` };
-  }
+  if (existingMember) return { success: false, error: `A member with email ${email} already exists` };
+  if (existingInvite) return { success: false, error: `An invite for ${email} is already pending` };
 
-  // Create the members row with id=null — linked on first login by getMyProfile
-  const { error: insertError } = await supabase.from('members').insert({
-    id: null,
+  // Store invite info in pending_invites — members row gets created on first login
+  const { error: insertError } = await supabase.from('pending_invites').insert({
     email,
     full_name: fullName,
     pledge_class: pledgeClass,
-    role: 'brother',
-    status: 'active',
   });
 
   if (insertError) return { success: false, error: insertError.message };
@@ -39,8 +34,7 @@ export async function inviteBrother(email, fullName, pledgeClass) {
   });
 
   if (inviteError) {
-    // Roll back the members row so we don't have an orphaned record
-    await supabase.from('members').delete().eq('email', email).is('id', null);
+    await supabase.from('pending_invites').delete().eq('email', email);
     return { success: false, error: inviteError.message };
   }
 

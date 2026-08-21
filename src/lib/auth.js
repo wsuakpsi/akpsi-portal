@@ -21,26 +21,32 @@ export async function getMyProfile() {
 
   if (data) return data
 
-  // First login after invite — no UID yet, match by email and link the UID
-  const { data: byEmail, error: emailError } = await supabase
-    .from('members')
-    .select('id, full_name, email, role, status, pledge_class, eboard_position')
+  // First login after invite — check pending_invites, promote to members
+  const { data: pending, error: pendingError } = await supabase
+    .from('pending_invites')
+    .select('email, full_name, pledge_class, role, status')
     .eq('email', session.user.email)
-    .is('id', null)
     .maybeSingle()
 
-  if (emailError) throw emailError
-  if (!byEmail) return null
+  if (pendingError) throw pendingError
+  if (!pending) return null
 
-  const { error: updateError } = await supabase
-    .from('members')
-    .update({ id: session.user.id })
-    .eq('email', session.user.email)
-    .is('id', null)
+  const newMember = {
+    id: session.user.id,
+    email: pending.email,
+    full_name: pending.full_name,
+    pledge_class: pending.pledge_class,
+    role: pending.role,
+    status: pending.status,
+    eboard_position: null,
+  }
 
-  if (updateError) throw updateError
+  const { error: insertError } = await supabase.from('members').insert(newMember)
+  if (insertError) throw insertError
 
-  return { ...byEmail, id: session.user.id }
+  await supabase.from('pending_invites').delete().eq('email', session.user.email)
+
+  return newMember
 }
 
 export async function signOut() {
