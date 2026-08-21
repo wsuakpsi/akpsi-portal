@@ -24,7 +24,7 @@ export async function getMyProfile() {
   // First login after invite — check pending_invites, promote to members
   const { data: pending, error: pendingError } = await supabase
     .from('pending_invites')
-    .select('email, full_name, pledge_class, role, status')
+    .select('email, full_name, pledge_class, role, status, first_semester_initiated')
     .eq('email', session.user.email)
     .maybeSingle()
 
@@ -39,6 +39,7 @@ export async function getMyProfile() {
     role: pending.role,
     status: pending.status,
     eboard_position: null,
+    first_semester_initiated: pending.first_semester_initiated || null,
   }
 
   const { error: insertError } = await supabase.from('members').insert(newMember)

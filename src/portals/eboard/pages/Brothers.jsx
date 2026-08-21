@@ -14,13 +14,14 @@ function InviteBrotherForm({ onClose, onAdded }) {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [pledgeClass, setPledgeClass] = useState('')
+  const [firstSemester, setFirstSemester] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await callLambda(INVITE_BROTHER_URL, { email, fullName, pledgeClass })
+      await callLambda(INVITE_BROTHER_URL, { email, fullName, pledgeClass, firstSemester: firstSemester.trim() || null })
       toast.success(`Invite sent to ${fullName}.`)
       onAdded()
     } catch (err) {
@@ -46,6 +47,10 @@ function InviteBrotherForm({ onClose, onAdded }) {
           <div className="form-field">
             <label htmlFor="pledge_class">Pledge class</label>
             <input id="pledge_class" type="text" value={pledgeClass} onChange={(e) => setPledgeClass(e.target.value)} required />
+          </div>
+          <div className="form-field">
+            <label htmlFor="first_semester">First semester initiated</label>
+            <input id="first_semester" type="text" value={firstSemester} onChange={(e) => setFirstSemester(e.target.value)} placeholder="e.g. Fall 2024" />
           </div>
           <p className="note-text">
             Creates their profile and sends an invite email. They'll set their own password when they click the link.
