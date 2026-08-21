@@ -4,3 +4,5 @@ dist
 .env.local
 .DS_Store
 lambdas/*.json
+lambdas/.aws-sam/
+**/service-account.json
