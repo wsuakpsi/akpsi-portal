@@ -84,7 +84,13 @@ export default function App() {
   return (
     <>
       {content}
-      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          error: { duration: 2500 },
+        }}
+      />
     </>
   )
 }

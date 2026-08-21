@@ -41,7 +41,7 @@ function ExcuseForm({ event, onClose, onSubmitted }) {
 
   return (
     <div className="card">
-      <h2>Submit excuse form</h2>
+      <h2>Request excusal</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-field">
           <label htmlFor="reason">Reason</label>
@@ -76,6 +76,7 @@ export default function Attendance({ profile }) {
   const [error, setError] = useState(null)
   const [eventAttendance, setEventAttendance] = useState([])
   const [meetingAttendance, setMeetingAttendance] = useState([])
+  const [upcomingMeetings, setUpcomingMeetings] = useState([])
   const [formsByEvent, setFormsByEvent] = useState({})
   const [excuseTarget, setExcuseTarget] = useState(null)
 
@@ -83,7 +84,8 @@ export default function Attendance({ profile }) {
     setLoading(true)
     setError(null)
     try {
-      const [attendanceRes, meetingRes, formsRes] = await Promise.all([
+      const now = new Date().toISOString()
+      const [attendanceRes, meetingRes, formsRes, upcomingRes] = await Promise.all([
         supabase
           .from('attendance')
           .select('*, events(*)')
@@ -96,11 +98,18 @@ export default function Attendance({ profile }) {
           .from('missing_meeting_forms')
           .select('event_id')
           .eq('member_id', profile.id),
+        supabase
+          .from('events')
+          .select('*')
+          .eq('category', 'meeting')
+          .gt('starts_at', now)
+          .order('starts_at', { ascending: true }),
       ])
 
       if (attendanceRes.error) throw attendanceRes.error
       if (meetingRes.error) throw meetingRes.error
       if (formsRes.error) throw formsRes.error
+      if (upcomingRes.error) throw upcomingRes.error
 
       const sortByStartsDesc = (rows) =>
         [...rows]
@@ -112,6 +121,7 @@ export default function Attendance({ profile }) {
 
       setEventAttendance(sortByStartsDesc(attendanceRes.data))
       setMeetingAttendance(sortByStartsDesc(meetingRes.data))
+      setUpcomingMeetings(upcomingRes.data || [])
       setFormsByEvent(formMap)
     } catch (err) {
       setError(err.message)
@@ -174,31 +184,49 @@ export default function Attendance({ profile }) {
       )}
 
       {!loading && tab === 'meetings' && (
-        <div className="card">
-          {meetingAttendance.length === 0 && <p className="empty-state">No meeting records yet.</p>}
-          {meetingAttendance.map((row) => (
-            <div className="list-item" key={row.id}>
-              <div className="title">{row.events.name}</div>
-              <div className="meta">{formatDateTime(row.events.starts_at)}</div>
-              <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span className={`status-badge ${row.status}`}>{row.status}</span>
-                {row.status === 'unexcused' && !formsByEvent[row.event_id] && (
-                  <button
-                    className="btn secondary"
-                    onClick={() =>
-                      setExcuseTarget({ event_id: row.event_id, member_id: profile.id })
-                    }
-                  >
-                    Submit excuse form
-                  </button>
-                )}
-                {row.status === 'unexcused' && formsByEvent[row.event_id] && (
-                  <span className="status-badge pending">Excuse submitted</span>
-                )}
+        <>
+          {upcomingMeetings.length > 0 && (
+            <>
+              <p className="section-head">Upcoming — submit excuse in advance</p>
+              <div className="card">
+                {upcomingMeetings.map((event) => (
+                  <div className="list-item" key={event.id}>
+                    <div className="title">{event.name}</div>
+                    <div className="meta">{formatDateTime(event.starts_at)}</div>
+                    <div style={{ marginTop: '0.35rem' }}>
+                      {formsByEvent[event.id] ? (
+                        <span className="status-badge pending">Excuse submitted</span>
+                      ) : (
+                        <button
+                          className="btn secondary"
+                          onClick={() =>
+                            setExcuseTarget({ event_id: event.id, member_id: profile.id })
+                          }
+                        >
+                          Submit excuse form
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
+            </>
+          )}
+
+          <p className="section-head">Past meetings</p>
+          <div className="card">
+            {meetingAttendance.length === 0 && <p className="empty-state">No meeting records yet.</p>}
+            {meetingAttendance.map((row) => (
+              <div className="list-item" key={row.id}>
+                <div className="title">{row.events.name}</div>
+                <div className="meta">{formatDateTime(row.events.starts_at)}</div>
+                <div style={{ marginTop: '0.35rem' }}>
+                  <span className={`status-badge ${row.status}`}>{row.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {excuseTarget && (

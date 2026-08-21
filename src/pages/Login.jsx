@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import './Login.css'
+
+function CrestIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+  )
+}
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -13,10 +23,7 @@ export default function Login() {
     setError(null)
     setLoading(true)
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (signInError) {
       setError(signInError.message)
@@ -27,36 +34,76 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: '4rem auto' }}>
-      <h1>AKPsi Portal Login</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email</label>
-          <br />
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="login-root">
+      {/* Desktop brand panel */}
+      <aside className="login-brand">
+        <div className="login-brand-crest">
+          <CrestIcon />
         </div>
-        <div style={{ marginTop: '1rem' }}>
-          <label htmlFor="password">Password</label>
-          <br />
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+        <div className="login-brand-name">AKΨ</div>
+        <div className="login-brand-full">Alpha Kappa Psi</div>
+        <div className="login-brand-divider" />
+        <p className="login-brand-tagline">
+          Developing principled business leaders — one brother at a time.
+        </p>
+      </aside>
+
+      {/* Form panel */}
+      <main className="login-form-panel">
+        {/* Mobile-only header */}
+        <div className="login-mobile-header">
+          <div className="login-mobile-crest">
+            <CrestIcon />
+          </div>
+          <div className="login-mobile-name">AKΨ Portal</div>
+          <div className="login-mobile-full">Alpha Kappa Psi</div>
         </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={loading} style={{ marginTop: '1rem' }}>
-          {loading ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
+
+        <div className="login-card">
+          <h1 className="login-card-title">Sign in</h1>
+          <p className="login-card-sub">Use your chapter account to continue.</p>
+
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="login-field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                autoComplete="email"
+                autoCapitalize="none"
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            {error && <div className="login-error">{error}</div>}
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              <span className="login-btn-inner">
+                {loading && <span className="login-spinner" />}
+                {loading ? 'Signing in…' : 'Sign in'}
+              </span>
+            </button>
+          </form>
+        </div>
+
+        <p className="login-footer">Alpha Kappa Psi · Chapter Portal</p>
+      </main>
     </div>
   )
 }
