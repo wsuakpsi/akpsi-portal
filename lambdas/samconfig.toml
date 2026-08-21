@@ -6,7 +6,7 @@ resolve_s3 = true
 s3_prefix = "sam-app"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "SupabaseUrl=\"https://rmqgnapkcfbcksbrgnor.supabase.co\" GoogleSheetsSpreadsheetId=\"\" EnableNightlySync=\"false\""
+parameter_overrides = "SupabaseUrl=\"https://rmqgnapkcfbcksbrgnor.supabase.co\" GoogleSheetsSpreadsheetId=\"\" EnableNightlySync=\"false\" GoogleCalendarId=\"wsuakpsi15@gmail.com\""
 image_repositories = []
 
 [default.global.parameters]
