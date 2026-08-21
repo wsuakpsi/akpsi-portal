@@ -27,6 +27,11 @@ Parameters:
     Type: String
     Default: ''
     Description: Target spreadsheet ID. Leave blank to skip Sheets sync for now.
+  GoogleCalendarId:
+    Type: String
+    Default: ''
+    Description: ID of the shared Google Calendar events should be added to (e.g.
+      abc123@group.calendar.google.com). Leave blank to disable calendar sync.
   EnableNightlySync:
     Type: String
     AllowedValues:
@@ -69,7 +74,22 @@ Globals:
           Ref: GoogleServiceAccountJson
         GOOGLE_SHEETS_SPREADSHEET_ID:
           Ref: GoogleSheetsSpreadsheetId
+        GOOGLE_CALENDAR_ID:
+          Ref: GoogleCalendarId
 Resources:
+  AddEventToCalendarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/addEventToCalendar.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /add-to-calendar
+            Method: POST
+      CodeUri: AddEventToCalendarFunction
+    Metadata:
+      SamResourceId: AddEventToCalendarFunction
   CompleteEventFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -260,6 +280,7 @@ Outputs:
       /calculate-standing=VITE_CALCULATE_STANDING_URL, /create-semester=VITE_CREATE_SEMESTER_URL,
       /generate-checkin-token=VITE_GENERATE_CHECKIN_TOKEN_URL, /record-attendance=VITE_RECORD_ATTENDANCE_URL,
       /record-attendance-qr=VITE_RECORD_ATTENDANCE_QR_URL, /remove-attendance=VITE_REMOVE_ATTENDANCE_URL,
-      /record-late-cancel=VITE_RECORD_LATE_CANCEL_URL, /sync-sheets=VITE_SHEETS_SYNC_URL
+      /record-late-cancel=VITE_RECORD_LATE_CANCEL_URL, /sync-sheets=VITE_SHEETS_SYNC_URL,
+      /add-to-calendar=VITE_ADD_TO_CALENDAR_URL
 
       '
