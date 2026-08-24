@@ -12,7 +12,7 @@ function CrestIcon() {
   )
 }
 
-export default function ResetPassword() {
+export default function ResetPassword({ onDone }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
@@ -55,8 +55,12 @@ export default function ResetPassword() {
       setError(updateError.message)
       toast.error(updateError.message)
     } else {
-      setDone(true)
-      toast.success('Password set! You can now sign in.')
+      toast.success('Password saved!')
+      if (onDone) {
+        onDone()
+      } else {
+        window.location.href = '/'
+      }
     }
   }
 

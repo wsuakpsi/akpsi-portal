@@ -34,9 +34,16 @@ function Suspended() {
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [profile, setProfile] = useState(undefined)
+  const [isRecovery, setIsRecovery] = useState(false)
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true)
+        setSession(newSession)
+        return
+      }
+      setIsRecovery(false)
       setSession(newSession)
     })
 
@@ -59,7 +66,9 @@ export default function App() {
   }, [session])
 
   let content
-  if (session === undefined || profile === undefined) {
+  if (isRecovery) {
+    content = <ResetPassword onDone={() => setIsRecovery(false)} />
+  } else if (session === undefined || profile === undefined) {
     content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
   } else if (!session || !profile) {
     content = (
