@@ -8,6 +8,11 @@ export async function inviteBrother(email, fullName, pledgeClass, firstSemester 
     return { success: false, error: 'email, fullName, and pledgeClass are required' };
   }
 
+  // Supabase Auth always lowercases the email on the auth user it creates —
+  // store the same casing here so the first-login lookup in getMyProfile()
+  // (src/lib/auth.js) actually matches.
+  email = email.trim().toLowerCase();
+
   const supabase = getSupabaseClient();
 
   // Check if already a member or already has a pending invite

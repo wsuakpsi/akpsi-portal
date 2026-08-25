@@ -21,15 +21,21 @@ export async function getMyProfile() {
 
   if (data) return data
 
-  // First login after invite — check pending_invites, promote to members
+  // First login after invite — check pending_invites, promote to members.
+  // Match case-insensitively: Supabase Auth always lowercases session.user.email,
+  // but older/manually-entered pending_invites rows may not be lowercase.
   const { data: pending, error: pendingError } = await supabase
     .from('pending_invites')
     .select('email, full_name, pledge_class, role, status, first_semester_initiated')
-    .eq('email', session.user.email)
+    .ilike('email', session.user.email)
     .maybeSingle()
 
   if (pendingError) throw pendingError
-  if (!pending) return null
+  if (!pending) {
+    const err = new Error('No pending invite found for this account.')
+    err.code = 'no_pending_invite'
+    throw err
+  }
 
   const newMember = {
     id: session.user.id,
@@ -43,9 +49,14 @@ export async function getMyProfile() {
   }
 
   const { error: insertError } = await supabase.from('members').insert(newMember)
-  if (insertError) throw insertError
+  if (insertError) {
+    insertError.isPromotionFailure = true
+    throw insertError
+  }
 
-  await supabase.from('pending_invites').delete().eq('email', session.user.email)
+  // Use the same case-insensitive match as the lookup above, so a
+  // mixed-case pending_invites row still gets cleaned up.
+  await supabase.from('pending_invites').delete().ilike('email', session.user.email)
 
   return newMember
 }

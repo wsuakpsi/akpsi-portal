@@ -31,9 +31,27 @@ function Suspended() {
   )
 }
 
+function ProfileSetupError({ error }) {
+  const message =
+    error?.code === 'no_pending_invite'
+      ? "We couldn't find a pending invite for this account. This usually means there's a typo or capitalization mismatch in the email E-Board invited you with — ask them to double check and resend your invite."
+      : error?.isPromotionFailure
+      ? "Something went wrong finishing your account setup. This usually means there's a conflicting account already on file — contact E-Board so they can look into it."
+      : 'Something went wrong loading your account. Try signing out and back in — if it keeps happening, contact E-Board.'
+
+  return (
+    <div style={{ maxWidth: 320, margin: '4rem auto', textAlign: 'center' }}>
+      <h1>Account setup issue</h1>
+      <p>{message}</p>
+      <button onClick={() => signOut()}>Sign out</button>
+    </div>
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [profile, setProfile] = useState(undefined)
+  const [profileError, setProfileError] = useState(null)
   const [isRecovery, setIsRecovery] = useState(false)
 
   useEffect(() => {
@@ -60,9 +78,13 @@ export default function App() {
     }
 
     setProfile(undefined)
+    setProfileError(null)
     getMyProfile()
       .then(setProfile)
-      .catch(() => setProfile(null))
+      .catch((err) => {
+        setProfileError(err)
+        setProfile(null)
+      })
   }, [session])
 
   let content
@@ -70,6 +92,8 @@ export default function App() {
     content = <ResetPassword onDone={() => setIsRecovery(false)} />
   } else if (session === undefined || profile === undefined) {
     content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
+  } else if (session && !profile && profileError) {
+    content = <ProfileSetupError error={profileError} />
   } else if (!session || !profile) {
     content = (
       <Routes>
