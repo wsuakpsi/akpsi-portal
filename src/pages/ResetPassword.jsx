@@ -12,6 +12,51 @@ function CrestIcon() {
   )
 }
 
+// Supabase redirects back with the error in the URL hash (#error=...) or,
+// occasionally, the query string (?error=...) — check both.
+function getAuthUrlError() {
+  const params = new URLSearchParams(
+    window.location.hash ? window.location.hash.slice(1) : window.location.search
+  )
+  const code = params.get('error_code') || params.get('error')
+  if (!code) return null
+  const description = params.get('error_description')
+  return {
+    code,
+    description: description ? description.replace(/\+/g, ' ') : null,
+  }
+}
+
+// Map known failure cases to plain-language copy and a concrete next step.
+function describeLinkError(code) {
+  switch (code) {
+    case 'otp_expired':
+      return {
+        title: 'This link has expired',
+        message:
+          'Invite and reset links only work for a limited time, and this one has passed that window.',
+      }
+    case 'access_denied':
+      return {
+        title: 'This link is invalid or already used',
+        message:
+          'Each invite or reset link can only be used once. If you already set a password with it, just sign in instead.',
+      }
+    case 'timeout':
+      return {
+        title: "We couldn't verify this link",
+        message:
+          "It's taking longer than expected to verify. This usually means the link is broken or was already used.",
+      }
+    default:
+      return {
+        title: "We couldn't verify this link",
+        message:
+          'The link looks malformed or is no longer valid. Try opening it again directly from the original email.',
+      }
+  }
+}
+
 export default function ResetPassword({ onDone }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -19,20 +64,42 @@ export default function ResetPassword({ onDone }) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [ready, setReady] = useState(false)
+  const [linkError, setLinkError] = useState(() => {
+    const urlError = getAuthUrlError()
+    return urlError ? describeLinkError(urlError.code) : null
+  })
 
   useEffect(() => {
+    if (linkError) return // URL already told us this link is bad — no need to wait
+
+    let settled = false
+
     // Check if Supabase already processed the token before this component mounted
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true)
+      if (data.session) {
+        settled = true
+        setReady(true)
+      }
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        settled = true
         setReady(true)
       }
     })
-    return () => listener.subscription.unsubscribe()
-  }, [])
+
+    // If Supabase never fires a recovery/sign-in event and never reports an
+    // error either, don't leave brothers staring at "Verifying link..." forever.
+    const timeout = setTimeout(() => {
+      if (!settled) setLinkError(describeLinkError('timeout'))
+    }, 10000)
+
+    return () => {
+      listener.subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
+  }, [linkError])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -52,6 +119,16 @@ export default function ResetPassword({ onDone }) {
     setLoading(false)
 
     if (updateError) {
+      // A session that expired mid-form looks like any other update error to
+      // Supabase, but brothers need a different instruction for it: restart
+      // from the link rather than retry the form.
+      if (/session/i.test(updateError.message)) {
+        setLinkError({
+          title: 'Your session expired',
+          message: 'This took too long and your link session timed out. Please request a new link and try again.',
+        })
+        return
+      }
       setError(updateError.message)
       toast.error(updateError.message)
     } else {
@@ -90,6 +167,19 @@ export default function ResetPassword({ onDone }) {
               <p className="login-card-sub">Your password has been saved. Go ahead and sign in.</p>
               <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '0.5rem' }}>
                 Go to sign in
+              </a>
+            </>
+          ) : linkError ? (
+            <>
+              <h1 className="login-card-title">{linkError.title}</h1>
+              <p className="login-card-sub">{linkError.message}</p>
+              <div className="login-error" style={{ marginBottom: '1rem' }}>
+                Already set a password before? <a href="/">Sign in</a>, then use "Forgot password" to get a fresh link.
+                <br />
+                Never set one, or your invite still doesn't work? Ask an E-Board member to resend your invite.
+              </div>
+              <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                Back to sign in
               </a>
             </>
           ) : !ready ? (
