@@ -3,7 +3,7 @@ import { wrapEboardHandler } from './lib/httpResponse.js';
 
 const BROTHER_PORTAL_URL = process.env.BROTHER_PORTAL_URL || 'https://brother.wsuakpsi.com';
 
-export async function inviteBrother(email, fullName, pledgeClass, firstSemester = null) {
+export async function inviteBrother(email, fullName, pledgeClass) {
   if (!email || !fullName || !pledgeClass) {
     return { success: false, error: 'email, fullName, and pledgeClass are required' };
   }
@@ -29,7 +29,6 @@ export async function inviteBrother(email, fullName, pledgeClass, firstSemester 
       email,
       full_name: fullName,
       pledge_class: pledgeClass,
-      first_semester_initiated: firstSemester,
     });
     if (insertError) return { success: false, error: insertError.message };
   }
@@ -51,5 +50,4 @@ export const handler = wrapEboardHandler(inviteBrother, (payload) => [
   payload.email,
   payload.fullName,
   payload.pledgeClass,
-  payload.firstSemester || null,
 ]);

@@ -151,57 +151,6 @@ function StatusChange({ member, onChanged }) {
   )
 }
 
-// Spec 2.1/8.1: gates the lower-threshold-application block on Profile.jsx
-// — a brother is ineligible for a semester whose name exactly matches this
-// field. Free text (spec's own example: "Fall 2024"), matched against
-// `semesters.name`, so it needs to be typed consistently with however
-// semesters get named.
-function FirstSemesterField({ member, onChanged }) {
-  const [value, setValue] = useState(member.first_semester_initiated || '')
-  const [busy, setBusy] = useState(false)
-
-  async function handleSave() {
-    const next = value.trim() || null
-    if (next === (member.first_semester_initiated || null)) return
-    setBusy(true)
-    try {
-      const { error: updateError } = await supabase
-        .from('members')
-        .update({ first_semester_initiated: next })
-        .eq('id', member.id)
-      if (updateError) throw updateError
-      toast.success('First semester initiated saved.')
-      onChanged()
-    } catch (err) {
-      toast.error(`Could not save first semester: ${err.message}`)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div>
-      <div className="form-field">
-        <label htmlFor="first-semester">First semester initiated</label>
-        <input
-          id="first-semester"
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="e.g. Fall 2024"
-        />
-      </div>
-      <button
-        type="button"
-        className="btn"
-        disabled={busy || value.trim() === (member.first_semester_initiated || '')}
-        onClick={handleSave}
-      >
-        {busy ? 'Saving...' : 'Save'}
-      </button>
-    </div>
-  )
-}
 
 function ManualAdjustmentForm({ member, semester, onAdjusted }) {
   const [delta, setDelta] = useState('')
@@ -419,7 +368,7 @@ export default function BrotherDetail({ profile }) {
   const [bipRows, setBipRows] = useState([])
   const [showBipForm, setShowBipForm] = useState(false)
   const [thresholdType, setThresholdType] = useState('standard')
-  const [activePanel, setActivePanel] = useState(null) // null | 'role' | 'status' | 'threshold' | 'points'
+  const [activePanel, setActivePanel] = useState(null) // null | 'role' | 'status' | 'points'
 
   async function load() {
     setLoading(true)
@@ -526,7 +475,6 @@ export default function BrotherDetail({ profile }) {
                 <tr><th>Email</th><td>{member.email}</td></tr>
                 <tr><th>Position</th><td>{member.eboard_position || '—'}</td></tr>
                 <tr><th>Threshold</th><td>{thresholdType === 'lower' ? 'Lower' : 'Standard'}</td></tr>
-                <tr><th>First semester</th><td>{member.first_semester_initiated || '—'}</td></tr>
               </tbody>
             </table>
           </div>
@@ -543,10 +491,7 @@ export default function BrotherDetail({ profile }) {
               <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'status' ? null : 'status')}>
                 Change status
               </button>
-              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'threshold' ? null : 'threshold')}>
-                Lower threshold eligibility
-              </button>
-              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setShowBipForm((v) => !v)}>
+<button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setShowBipForm((v) => !v)}>
                 Open improvement plan
               </button>
               {member.status !== 'suspended' && (
@@ -585,12 +530,7 @@ export default function BrotherDetail({ profile }) {
                 <StatusChange member={member} onChanged={load} />
               </div>
             )}
-            {activePanel === 'threshold' && (
-              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
-                <FirstSemesterField member={member} onChanged={load} />
-              </div>
-            )}
-            {showBipForm && (
+{showBipForm && (
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
                 <CreateBipForm
                   member={member}
