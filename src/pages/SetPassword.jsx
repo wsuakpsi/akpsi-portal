@@ -34,13 +34,13 @@ function describeLinkError(code) {
       return {
         title: 'This link has expired',
         message:
-          'Reset links only work for a limited time, and this one has passed that window.',
+          'Invite links only work for a limited time, and this one has passed that window.',
       }
     case 'access_denied':
       return {
         title: 'This link is invalid or already used',
         message:
-          'Each reset link can only be used once. If you already reset your password with it, just sign in instead.',
+          'Each invite link can only be used once. If you already set a password with it, just sign in instead.',
       }
     case 'timeout':
       return {
@@ -57,12 +57,14 @@ function describeLinkError(code) {
   }
 }
 
-export default function ResetPassword({ onDone }) {
+// Invite links land the user in an authenticated session via a plain
+// SIGNED_IN event (not PASSWORD_RECOVERY — that's only for "forgot password"
+// links), so we watch for either to know the token was verified.
+export default function SetPassword({ onDone }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
   const [ready, setReady] = useState(false)
   const [linkError, setLinkError] = useState(() => {
     const urlError = getAuthUrlError()
@@ -83,14 +85,14 @@ export default function ResetPassword({ onDone }) {
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
         settled = true
         setReady(true)
       }
     })
 
-    // If Supabase never fires a recovery/sign-in event and never reports an
-    // error either, don't leave brothers staring at "Verifying link..." forever.
+    // If Supabase never fires a sign-in event and never reports an error
+    // either, don't leave brothers staring at "Verifying link..." forever.
     const timeout = setTimeout(() => {
       if (!settled) setLinkError(describeLinkError('timeout'))
     }, 10000)
@@ -125,7 +127,7 @@ export default function ResetPassword({ onDone }) {
       if (/session/i.test(updateError.message)) {
         setLinkError({
           title: 'Your session expired',
-          message: 'This took too long and your link session timed out. Please request a new link and try again.',
+          message: 'This took too long and your link session timed out. Please ask E-Board to resend your invite.',
         })
         return
       }
@@ -161,22 +163,14 @@ export default function ResetPassword({ onDone }) {
         </div>
 
         <div className="login-card">
-          {done ? (
-            <>
-              <h1 className="login-card-title">You're all set</h1>
-              <p className="login-card-sub">Your password has been saved. Go ahead and sign in.</p>
-              <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '0.5rem' }}>
-                Go to sign in
-              </a>
-            </>
-          ) : linkError ? (
+          {linkError ? (
             <>
               <h1 className="login-card-title">{linkError.title}</h1>
               <p className="login-card-sub">{linkError.message}</p>
               <div className="login-error" style={{ marginBottom: '1rem' }}>
-                Already reset your password with this link? <a href="/">Sign in</a> with it.
+                Already set a password before? <a href="/">Sign in</a>, then use "Forgot password" to get a fresh link.
                 <br />
-                Still can't get in? Use "Forgot password" from the sign-in page to request a fresh link.
+                Never set one, or your invite still doesn't work? Ask an E-Board member to resend your invite.
               </div>
               <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
                 Back to sign in
@@ -185,12 +179,12 @@ export default function ResetPassword({ onDone }) {
           ) : !ready ? (
             <>
               <h1 className="login-card-title">Verifying link…</h1>
-              <p className="login-card-sub">Please wait while we verify your reset link.</p>
+              <p className="login-card-sub">Please wait while we verify your invite link.</p>
             </>
           ) : (
             <>
-              <h1 className="login-card-title">Reset your password</h1>
-              <p className="login-card-sub">Enter a new password to regain access to your account.</p>
+              <h1 className="login-card-title">Set your password</h1>
+              <p className="login-card-sub">Choose a password to activate your chapter account.</p>
 
               <form onSubmit={handleSubmit} noValidate>
                 <div className="login-field">
