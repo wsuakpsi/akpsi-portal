@@ -64,6 +64,44 @@ function InviteBrotherForm({ onClose, onAdded }) {
   )
 }
 
+function PendingInvites({ invites, onResend, resendingEmail }) {
+  if (invites.length === 0) return null
+
+  return (
+    <div className="card" style={{ marginBottom: '1rem' }}>
+      <h3 style={{ marginTop: 0 }}>Pending invites</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Pledge class</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {invites.map((inv) => (
+            <tr key={inv.email}>
+              <td>{inv.full_name}</td>
+              <td>{inv.email}</td>
+              <td>{inv.pledge_class}</td>
+              <td>
+                <button
+                  className="btn small secondary"
+                  disabled={resendingEmail === inv.email}
+                  onClick={() => onResend(inv)}
+                >
+                  {resendingEmail === inv.email ? 'Resending...' : 'Resend invite'}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function Brothers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -74,6 +112,25 @@ export default function Brothers() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [showInviteForm, setShowInviteForm] = useState(false)
+  const [pendingInvites, setPendingInvites] = useState([])
+  const [resendingEmail, setResendingEmail] = useState(null)
+
+  async function handleResend(invite) {
+    setResendingEmail(invite.email)
+    try {
+      await callLambda(INVITE_BROTHER_URL, {
+        email: invite.email,
+        fullName: invite.full_name,
+        pledgeClass: invite.pledge_class,
+        resend: true,
+      })
+      toast.success(`Invite resent to ${invite.full_name}.`)
+    } catch (err) {
+      toast.error(`Could not resend invite: ${err.message}`)
+    } finally {
+      setResendingEmail(null)
+    }
+  }
 
   async function load() {
     setLoading(true)
@@ -81,7 +138,7 @@ export default function Brothers() {
     try {
       const semester = await getActiveSemester()
 
-      const [membersRes, ltaRes] = await Promise.all([
+      const [membersRes, ltaRes, pendingRes] = await Promise.all([
         supabase.from('members').select('*').order('full_name', { ascending: true }),
         semester
           ? supabase
@@ -89,10 +146,12 @@ export default function Brothers() {
               .select('member_id, status')
               .eq('semester_id', semester.id)
           : Promise.resolve({ data: [], error: null }),
+        supabase.from('pending_invites').select('email, full_name, pledge_class').order('full_name', { ascending: true }),
       ])
 
       if (membersRes.error) throw membersRes.error
       if (ltaRes.error) throw ltaRes.error
+      if (pendingRes.error) throw pendingRes.error
 
       const thresholdMap = {}
       for (const row of ltaRes.data || []) thresholdMap[row.member_id] = row.status
@@ -125,6 +184,7 @@ export default function Brothers() {
       setMembers(membersRes.data || [])
       setThresholdByMember(thresholdMap)
       setMeetingCountsByMember(meetingMap)
+      setPendingInvites(pendingRes.data || [])
     } catch (err) {
       setError(err.message)
       toast.error(`Could not load brothers: ${err.message}`)
@@ -190,6 +250,8 @@ export default function Brothers() {
         </div>
       </div>
       {error && <p className="error-text">{error}</p>}
+
+      <PendingInvites invites={pendingInvites} onResend={handleResend} resendingEmail={resendingEmail} />
 
       <div className="toolbar">
         <input

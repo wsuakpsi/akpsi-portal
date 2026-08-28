@@ -3,7 +3,7 @@ import { wrapEboardHandler } from './lib/httpResponse.js';
 
 const BROTHER_PORTAL_URL = process.env.BROTHER_PORTAL_URL || 'https://brother.wsuakpsi.com';
 
-export async function inviteBrother(email, fullName, pledgeClass) {
+export async function inviteBrother(email, fullName, pledgeClass, resend = false) {
   if (!email || !fullName || !pledgeClass) {
     return { success: false, error: 'email, fullName, and pledgeClass are required' };
   }
@@ -23,15 +23,19 @@ export async function inviteBrother(email, fullName, pledgeClass) {
 
   if (existingMember) return { success: false, error: `A member with email ${email} already exists` };
 
-  if (existingInvite) return { success: false, error: `An invite has already been sent to ${email}` };
+  if (existingInvite && !resend) {
+    return { success: false, error: `An invite has already been sent to ${email}. Resend it instead of sending a new one.` };
+  }
 
-  // First invite — create the pending_invites row
-  const { error: insertError } = await supabase.from('pending_invites').insert({
-    email,
-    full_name: fullName,
-    pledge_class: pledgeClass,
-  });
-  if (insertError) return { success: false, error: insertError.message };
+  if (!existingInvite) {
+    // First invite — create the pending_invites row
+    const { error: insertError } = await supabase.from('pending_invites').insert({
+      email,
+      full_name: fullName,
+      pledge_class: pledgeClass,
+    });
+    if (insertError) return { success: false, error: insertError.message };
+  }
 
   // Send the invite email via Supabase Auth admin API
   const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
@@ -39,7 +43,7 @@ export async function inviteBrother(email, fullName, pledgeClass) {
   });
 
   if (inviteError) {
-    await supabase.from('pending_invites').delete().eq('email', email);
+    if (!existingInvite) await supabase.from('pending_invites').delete().eq('email', email);
     return { success: false, error: inviteError.message };
   }
 
@@ -50,4 +54,5 @@ export const handler = wrapEboardHandler(inviteBrother, (payload) => [
   payload.email,
   payload.fullName,
   payload.pledgeClass,
+  payload.resend,
 ]);
