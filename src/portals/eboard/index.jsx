@@ -17,8 +17,12 @@ import SheetsSync from './pages/SheetsSync'
 
 export default function EboardRouter({ profile }) {
   const [badges, setBadges] = useState({})
+  const isCommitteeHead = profile.role === 'committee_head'
 
   useEffect(() => {
+    // Committee Heads can't read most of what this counts (forms, etc.) —
+    // skip it rather than firing requests RLS will just empty out.
+    if (isCommitteeHead) return
     let cancelled = false
     getSidebarBadgeCounts()
       .then((counts) => {
@@ -28,24 +32,35 @@ export default function EboardRouter({ profile }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isCommitteeHead])
 
   return (
     <div className="eboard-app">
       <Sidebar profile={profile} badges={badges} />
       <Routes>
-        <Route path="/" element={<Navigate to="/eboard" replace />} />
-        <Route path="/eboard" element={<Overview />} />
-        <Route path="/eboard/brothers" element={<Brothers />} />
-        <Route path="/eboard/brothers/:id" element={<BrotherDetail profile={profile} />} />
-        <Route path="/eboard/events" element={<Events />} />
-        <Route path="/eboard/events/:id" element={<EventDetail />} />
-        <Route path="/eboard/forms" element={<Forms profile={profile} />} />
-        <Route path="/eboard/points" element={<Points />} />
-        <Route path="/eboard/attendance" element={<Attendance />} />
-        <Route path="/eboard/discipline" element={<Discipline />} />
-        <Route path="/eboard/semesters" element={<Semesters />} />
-        <Route path="/eboard/sync" element={<SheetsSync />} />
+        {isCommitteeHead ? (
+          <>
+            <Route path="/" element={<Navigate to="/eboard/events" replace />} />
+            <Route path="/eboard" element={<Navigate to="/eboard/events" replace />} />
+            <Route path="/eboard/events" element={<Events profile={profile} />} />
+            <Route path="*" element={<Navigate to="/eboard/events" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<Navigate to="/eboard" replace />} />
+            <Route path="/eboard" element={<Overview />} />
+            <Route path="/eboard/brothers" element={<Brothers />} />
+            <Route path="/eboard/brothers/:id" element={<BrotherDetail profile={profile} />} />
+            <Route path="/eboard/events" element={<Events profile={profile} />} />
+            <Route path="/eboard/events/:id" element={<EventDetail />} />
+            <Route path="/eboard/forms" element={<Forms profile={profile} />} />
+            <Route path="/eboard/points" element={<Points />} />
+            <Route path="/eboard/attendance" element={<Attendance />} />
+            <Route path="/eboard/discipline" element={<Discipline />} />
+            <Route path="/eboard/semesters" element={<Semesters />} />
+            <Route path="/eboard/sync" element={<SheetsSync />} />
+          </>
+        )}
       </Routes>
     </div>
   )

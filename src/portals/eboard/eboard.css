@@ -499,6 +499,7 @@ button {
 .pill.extra { background: #f1f5f9; color: #334155; }
 
 .pill.role-eboard { background: var(--navy-900); color: #fff; text-transform: none; font-weight: 700; }
+.pill.role-committee-head { background: #92400e; color: #fff; text-transform: none; font-weight: 700; }
 .pill.role-brother { background: #eceae4; color: #555; text-transform: none; }
 
 .status-badge {

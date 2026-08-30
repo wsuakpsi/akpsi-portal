@@ -91,7 +91,17 @@ function initials(name) {
     .join('')
 }
 
+const committeeHeadSections = [
+  {
+    label: 'Chapter',
+    links: [{ to: '/eboard/events', label: 'Events', end: true, icon: 'events' }],
+  },
+]
+
 export default function Sidebar({ profile, badges = {} }) {
+  const isCommitteeHead = profile.role === 'committee_head'
+  const visibleSections = isCommitteeHead ? committeeHeadSections : sections
+
   return (
     <nav className="sidebar">
       <div className="sidebar-header">
@@ -99,7 +109,7 @@ export default function Sidebar({ profile, badges = {} }) {
         <div className="sidebar-subtitle">E-Board portal</div>
       </div>
 
-      {sections.map((section) => (
+      {visibleSections.map((section) => (
         <div className="sidebar-section" key={section.label}>
           <div className="sidebar-section-label">{section.label}</div>
           <div className="sidebar-links">
@@ -126,7 +136,9 @@ export default function Sidebar({ profile, badges = {} }) {
         <div className="sidebar-avatar">{initials(profile.full_name)}</div>
         <div>
           <div className="sidebar-user-name">{profile.full_name}</div>
-          <div className="sidebar-user-position">{profile.eboard_position || 'E-Board'}</div>
+          <div className="sidebar-user-position">
+            {profile.eboard_position || (isCommitteeHead ? 'Committee Head' : 'E-Board')}
+          </div>
         </div>
       </div>
       <button className="btn secondary sidebar-signout" onClick={() => signOut()}>

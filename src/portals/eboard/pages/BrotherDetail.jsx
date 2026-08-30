@@ -15,8 +15,21 @@ const POST_ADJUSTMENT_URL = import.meta.env.VITE_POST_ADJUSTMENT_URL
 const ADJUSTMENT_CATEGORIES = ['adjustment', ...POINT_CATEGORIES, 'rush', 'extra', 'meeting']
 const STATUS_OPTIONS = ['active', 'probation', 'suspended', 'alumni', 'archived']
 
-// Spec 2.4: role flip is brother <-> eboard only (pledge/alumni/archived
-// aren't part of this control) and eboard_position must be set/cleared in
+function roleLabel(role) {
+  if (role === 'eboard') return 'E-Board'
+  if (role === 'committee_head') return 'Committee Head'
+  return 'Brother'
+}
+
+function roleClass(role) {
+  if (role === 'eboard') return 'role-eboard'
+  if (role === 'committee_head') return 'role-committee-head'
+  return 'role-brother'
+}
+
+// Spec 2.4: role flip is brother <-> eboard/committee_head only (pledge/
+// alumni/archived aren't part of this control) and eboard_position must be
+// set/cleared in
 // the same atomic operation as the role change. The DB constraint from
 // migration 0004 (members_eboard_position_matches_role) enforces that no
 // matter what this UI sends, so a bug here can leave a bad row queued but
@@ -56,8 +69,9 @@ function RoleFlip({ member, onChanged }) {
   }
 
   async function handleDemote() {
+    const fromLabel = member.role === 'committee_head' ? 'Committee Head' : 'E-Board'
     const confirmed = window.confirm(
-      `Demote ${member.full_name} from E-Board back to brother? This clears their E-Board position and they will be notified immediately.`
+      `Demote ${member.full_name} from ${fromLabel} back to brother? This clears their E-Board position and they will be notified immediately.`
     )
     if (!confirmed) return
     setBusy(true)
@@ -82,31 +96,69 @@ function RoleFlip({ member, onChanged }) {
     }
   }
 
-  if (member.role !== 'brother' && member.role !== 'eboard') {
-    return <p className="note-text">Role flip only applies to brother/E-Board members ({member.role}).</p>
+  async function handlePromoteCommitteeHead() {
+    const confirmed = window.confirm(
+      `Promote ${member.full_name} to Committee Head? They'll get eboard-portal access limited to creating events, and will be notified immediately.`
+    )
+    if (!confirmed) return
+    setBusy(true)
+    try {
+      const { error: updateError } = await supabase
+        .from('members')
+        .update({ role: 'committee_head' })
+        .eq('id', member.id)
+      if (updateError) throw updateError
+      const { error: notifError } = await supabase.from('notifications').insert({
+        member_id: member.id,
+        title: 'Role updated',
+        body: "You've been promoted to Committee Head — you can now create events in the E-Board portal.",
+      })
+      if (notifError) throw notifError
+      toast.success(`${member.full_name} promoted to Committee Head.`)
+      onChanged()
+    } catch (err) {
+      toast.error(`Could not promote ${member.full_name}: ${err.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (member.role !== 'brother' && member.role !== 'eboard' && member.role !== 'committee_head') {
+    return <p className="note-text">Role flip only applies to brother/Committee Head/E-Board members ({member.role}).</p>
   }
 
   return (
     <div>
       {member.role === 'brother' && (
-        <form onSubmit={handlePromote}>
-          <div className="form-field">
-            <label htmlFor="eboard-position">E-Board position</label>
-            <input
-              id="eboard-position"
-              type="text"
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              placeholder="e.g. VP Membership"
-              required
-            />
-          </div>
-          <button type="submit" className="btn" disabled={busy || !position.trim()}>
-            {busy ? 'Promoting...' : 'Promote to E-Board'}
+        <>
+          <form onSubmit={handlePromote}>
+            <div className="form-field">
+              <label htmlFor="eboard-position">E-Board position</label>
+              <input
+                id="eboard-position"
+                type="text"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="e.g. VP Membership"
+                required
+              />
+            </div>
+            <button type="submit" className="btn" disabled={busy || !position.trim()}>
+              {busy ? 'Promoting...' : 'Promote to E-Board'}
+            </button>
+          </form>
+          <button
+            type="button"
+            className="btn secondary"
+            style={{ marginTop: '0.5rem' }}
+            disabled={busy}
+            onClick={handlePromoteCommitteeHead}
+          >
+            {busy ? 'Promoting...' : 'Promote to Committee Head'}
           </button>
-        </form>
+        </>
       )}
-      {member.role === 'eboard' && (
+      {(member.role === 'eboard' || member.role === 'committee_head') && (
         <button type="button" className="btn danger" disabled={busy} onClick={handleDemote}>
           {busy ? 'Demoting...' : 'Demote to brother'}
         </button>
@@ -454,7 +506,7 @@ export default function BrotherDetail({ profile }) {
       <div className="page-header">
         <div>
           <h1>{member.full_name}</h1>
-          <p className="page-subtitle">{semester ? semester.name : 'No active semester'} &middot; {member.role === 'eboard' ? 'E-Board' : 'Brother'}</p>
+          <p className="page-subtitle">{semester ? semester.name : 'No active semester'} &middot; {roleLabel(member.role)}</p>
         </div>
       </div>
 
@@ -465,9 +517,7 @@ export default function BrotherDetail({ profile }) {
             <h2 style={{ fontSize: '1.15rem' }}>{member.full_name}</h2>
             <div style={{ display: 'flex', gap: '0.4rem', margin: '0.5rem 0 1rem' }}>
               <span className={`status-badge ${member.status}`}>{member.status}</span>
-              <span className={`pill ${member.role === 'eboard' ? 'role-eboard' : 'role-brother'}`}>
-                {member.role === 'eboard' ? 'E-Board' : 'Brother'}
-              </span>
+              <span className={`pill ${roleClass(member.role)}`}>{roleLabel(member.role)}</span>
             </div>
             <table>
               <tbody>

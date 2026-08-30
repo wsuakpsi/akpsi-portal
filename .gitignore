@@ -6,3 +6,4 @@ dist
 lambdas/*.json
 lambdas/.aws-sam/
 **/service-account.json
+supabase/.temp

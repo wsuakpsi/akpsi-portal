@@ -7,7 +7,7 @@ import { getActiveSemester } from '../lib/queries'
 
 const INVITE_BROTHER_URL = import.meta.env.VITE_INVITE_BROTHER_URL
 
-const ROLES = ['brother', 'eboard']
+const ROLES = ['brother', 'eboard', 'committee_head']
 const STATUSES = ['active', 'probation', 'suspended']
 
 function InviteBrotherForm({ onClose, onAdded }) {
@@ -309,8 +309,16 @@ export default function Brothers() {
                       </div>
                     </td>
                     <td>
-                      <span className={`pill ${m.role === 'eboard' ? 'role-eboard' : 'role-brother'}`}>
-                        {m.role === 'eboard' ? 'E-Board' : 'Brother'}
+                      <span
+                        className={`pill ${
+                          m.role === 'eboard'
+                            ? 'role-eboard'
+                            : m.role === 'committee_head'
+                            ? 'role-committee-head'
+                            : 'role-brother'
+                        }`}
+                      >
+                        {m.role === 'eboard' ? 'E-Board' : m.role === 'committee_head' ? 'Committee Head' : 'Brother'}
                       </span>
                     </td>
                     <td>{m.eboard_position || '—'}</td>

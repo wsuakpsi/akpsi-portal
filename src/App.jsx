@@ -103,16 +103,19 @@ export default function App() {
     )
   } else if (profile.status === 'suspended') {
     content = <Suspended />
-  } else if (PORTAL === 'brother' && (profile.role === 'brother' || profile.role === 'eboard')) {
+  } else if (
+    PORTAL === 'brother' &&
+    (profile.role === 'brother' || profile.role === 'eboard' || profile.role === 'committee_head')
+  ) {
     content = (
       <Routes>
         <Route path="/*" element={<BrotherRouter profile={profile} />} />
       </Routes>
     )
-  } else if (PORTAL === 'eboard' && profile.role === 'eboard') {
+  } else if (PORTAL === 'eboard' && (profile.role === 'eboard' || profile.role === 'committee_head')) {
     content = (
       <Routes>
-        <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />
+        {profile.role === 'eboard' && <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />}
         <Route path="/*" element={<EboardRouter profile={profile} />} />
       </Routes>
     )

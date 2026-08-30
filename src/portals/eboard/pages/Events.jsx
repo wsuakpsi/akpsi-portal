@@ -146,7 +146,8 @@ function AddEventForm({ semester, onClose, onAdded }) {
   )
 }
 
-export default function Events() {
+export default function Events({ profile }) {
+  const isCommitteeHead = profile?.role === 'committee_head'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [semester, setSemester] = useState(null)
@@ -183,7 +184,9 @@ export default function Events() {
       let rsvpMap = {}
       let attendanceMap = {}
 
-      if (eventIds.length > 0) {
+      // Committee Heads only have insert rights on events — RLS would just
+      // hand back empty rsvp/attendance rows for them, so skip the requests.
+      if (eventIds.length > 0 && !isCommitteeHead) {
         const [rsvpRes, attendanceRes] = await Promise.all([
           supabase.from('rsvps').select('event_id').eq('status', 'going').in('event_id', eventIds),
           supabase.from('attendance').select('event_id').in('event_id', eventIds),
@@ -290,37 +293,41 @@ export default function Events() {
             {event.points_value ? ` · +${event.points_value} pts` : ''}
           </div>
         </div>
-        <div className="event-row-stats">
-          {event.status === 'completed' ? (
-            <>
-              <div className="stat-num">{attendanceCounts[event.id] || 0}</div>
-              <div className="stat-label">Attended</div>
-            </>
-          ) : event.status === 'cancelled' ? (
-            <div className="stat-label">Voided</div>
-          ) : (
-            <>
-              <div className="stat-num">{rsvpCounts[event.id] || 0}</div>
-              <div className="stat-label">RSVP'd</div>
-            </>
-          )}
-        </div>
-        <div className="event-row-actions">
-          {event.status === 'scheduled' && (
-            <>
-              <button className="btn small secondary" disabled={isBusy} onClick={() => handleMarkComplete(event)}>
-                Mark complete
-              </button>
+        {!isCommitteeHead && (
+          <div className="event-row-stats">
+            {event.status === 'completed' ? (
+              <>
+                <div className="stat-num">{attendanceCounts[event.id] || 0}</div>
+                <div className="stat-label">Attended</div>
+              </>
+            ) : event.status === 'cancelled' ? (
+              <div className="stat-label">Voided</div>
+            ) : (
+              <>
+                <div className="stat-num">{rsvpCounts[event.id] || 0}</div>
+                <div className="stat-label">RSVP'd</div>
+              </>
+            )}
+          </div>
+        )}
+        {!isCommitteeHead && (
+          <div className="event-row-actions">
+            {event.status === 'scheduled' && (
+              <>
+                <button className="btn small secondary" disabled={isBusy} onClick={() => handleMarkComplete(event)}>
+                  Mark complete
+                </button>
+                <Link className="btn small secondary" to={`/eboard/events/${event.id}`}>View</Link>
+                <button className="btn small danger" disabled={isBusy} onClick={() => handleCancel(event)}>
+                  Cancel
+                </button>
+              </>
+            )}
+            {event.status !== 'scheduled' && (
               <Link className="btn small secondary" to={`/eboard/events/${event.id}`}>View</Link>
-              <button className="btn small danger" disabled={isBusy} onClick={() => handleCancel(event)}>
-                Cancel
-              </button>
-            </>
-          )}
-          {event.status !== 'scheduled' && (
-            <Link className="btn small secondary" to={`/eboard/events/${event.id}`}>View</Link>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     )
   }
