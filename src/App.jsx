@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import { getMyProfile, signOut } from './lib/auth'
 import Login from './pages/Login'
+import SetPassword from './pages/SetPassword'
 import ResetPassword from './pages/ResetPassword'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
@@ -53,6 +54,12 @@ export default function App() {
   const [profile, setProfile] = useState(undefined)
   const [profileError, setProfileError] = useState(null)
   const [isRecovery, setIsRecovery] = useState(false)
+  // Invite links land here via a plain SIGNED_IN event (not PASSWORD_RECOVERY,
+  // which only fires for "forgot password" links), so the only reliable
+  // signal that this is an unfinished invite is the /set-password path itself.
+  // Must be checked before the profile/portal logic below runs, or a brother
+  // who never set a password ends up straight in the portal.
+  const [isInvite, setIsInvite] = useState(() => window.location.pathname === '/set-password')
 
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -87,8 +94,15 @@ export default function App() {
       })
   }, [session])
 
+  function finishInvite() {
+    setIsInvite(false)
+    window.history.replaceState({}, '', '/')
+  }
+
   let content
-  if (isRecovery) {
+  if (isInvite) {
+    content = <SetPassword onDone={finishInvite} />
+  } else if (isRecovery) {
     content = <ResetPassword onDone={() => setIsRecovery(false)} />
   } else if (session === undefined || profile === undefined) {
     content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
@@ -97,7 +111,7 @@ export default function App() {
   } else if (!session || !profile) {
     content = (
       <Routes>
-        <Route path="/set-password" element={<ResetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Login />} />
       </Routes>
     )
