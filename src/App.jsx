@@ -59,7 +59,11 @@ export default function App() {
   // signal that this is an unfinished invite is the /set-password path itself.
   // Must be checked before the profile/portal logic below runs, or a brother
   // who never set a password ends up straight in the portal.
-  const [isInvite, setIsInvite] = useState(() => window.location.pathname === '/set-password')
+  // S3/CloudFront 301-redirects "/set-password" to "/set-password/" (adds a
+  // trailing slash) before the app ever sees the URL, so strip it before comparing.
+  const [isInvite, setIsInvite] = useState(
+    () => window.location.pathname.replace(/\/$/, '') === '/set-password'
+  )
 
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
