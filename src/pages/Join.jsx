@@ -148,7 +148,7 @@ export default function Join({ onDone }) {
                     type="text"
                     value={pledgeClass}
                     onChange={(e) => setPledgeClass(e.target.value)}
-                    placeholder="e.g. Fall 2026"
+                    placeholder="e.g. Sigma"
                     required
                   />
                 </div>
