@@ -6,6 +6,7 @@ import { getMyProfile, signOut } from './lib/auth'
 import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
 import ResetPassword from './pages/ResetPassword'
+import Join from './pages/Join'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
 import CheckInQrPage from './portals/eboard/pages/CheckInQrPage'
@@ -64,6 +65,9 @@ export default function App() {
   const [isInvite, setIsInvite] = useState(
     () => window.location.pathname.replace(/\/$/, '') === '/set-password'
   )
+  const [isJoin, setIsJoin] = useState(
+    () => window.location.pathname.replace(/\/$/, '') === '/join'
+  )
 
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -103,9 +107,16 @@ export default function App() {
     window.history.replaceState({}, '', '/')
   }
 
+  function finishJoin() {
+    setIsJoin(false)
+    window.history.replaceState({}, '', '/')
+  }
+
   let content
   if (isInvite) {
     content = <SetPassword onDone={finishInvite} />
+  } else if (isJoin) {
+    content = <Join onDone={finishJoin} />
   } else if (isRecovery) {
     content = <ResetPassword onDone={() => setIsRecovery(false)} />
   } else if (session === undefined || profile === undefined) {
