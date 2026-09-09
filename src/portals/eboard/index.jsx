@@ -42,7 +42,8 @@ export default function EboardRouter({ profile }) {
           <>
             <Route path="/" element={<Navigate to="/eboard/events" replace />} />
             <Route path="/eboard" element={<Navigate to="/eboard/events" replace />} />
-            <Route path="/eboard/events" element={<Events profile={profile} />} />
+            <Route path="/eboard/events" element={<Events />} />
+            <Route path="/eboard/events/:id" element={<EventDetail />} />
             <Route path="*" element={<Navigate to="/eboard/events" replace />} />
           </>
         ) : (
@@ -51,7 +52,7 @@ export default function EboardRouter({ profile }) {
             <Route path="/eboard" element={<Overview />} />
             <Route path="/eboard/brothers" element={<Brothers />} />
             <Route path="/eboard/brothers/:id" element={<BrotherDetail profile={profile} />} />
-            <Route path="/eboard/events" element={<Events profile={profile} />} />
+            <Route path="/eboard/events" element={<Events />} />
             <Route path="/eboard/events/:id" element={<EventDetail />} />
             <Route path="/eboard/forms" element={<Forms profile={profile} />} />
             <Route path="/eboard/points" element={<Points />} />

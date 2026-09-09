@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
-import { wrapEboardHandler } from './lib/httpResponse.js';
+import { wrapEventManagerHandler } from './lib/httpResponse.js';
 
 // Spec 6.8: removing incorrect attendance deletes the attendance row and
 // posts an offsetting negative ledger entry with a required note — the
@@ -83,7 +83,7 @@ export async function removeAttendance(eventId, memberId, note, removedBy) {
   return { success: true };
 }
 
-export const handler = wrapEboardHandler(removeAttendance, (payload, caller) => [
+export const handler = wrapEventManagerHandler(removeAttendance, (payload, caller) => [
   payload.eventId,
   payload.memberId,
   payload.note,

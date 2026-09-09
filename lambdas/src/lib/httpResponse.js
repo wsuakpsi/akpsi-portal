@@ -1,4 +1,10 @@
-import { AuthError, requireEboardCaller, requireSelfOrEboardCaller } from './auth.js';
+import {
+  AuthError,
+  requireEboardCaller,
+  requireSelfOrEboardCaller,
+  requireEventManagerCaller,
+  requireSelfOrEventManagerCaller,
+} from './auth.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -51,6 +57,20 @@ export function wrapEboardHandler(coreFn, extractArgs) {
 export function wrapAuthedHandler(coreFn, extractArgs, getSubjectMemberId) {
   return makeHandler(
     (event, payload) => requireSelfOrEboardCaller(event, getSubjectMemberId(payload)),
+    coreFn,
+    extractArgs,
+  );
+}
+
+// For the event detail page's management actions — Committee Heads have
+// full parity with E-Board here (see requireEventManagerCaller).
+export function wrapEventManagerHandler(coreFn, extractArgs) {
+  return makeHandler(requireEventManagerCaller, coreFn, extractArgs);
+}
+
+export function wrapSelfOrEventManagerHandler(coreFn, extractArgs, getSubjectMemberId) {
+  return makeHandler(
+    (event, payload) => requireSelfOrEventManagerCaller(event, getSubjectMemberId(payload)),
     coreFn,
     extractArgs,
   );

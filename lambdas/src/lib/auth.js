@@ -56,3 +56,23 @@ export async function requireSelfOrEboardCaller(event, subjectMemberId) {
   if (member.role === 'eboard' || member.id === subjectMemberId) return member;
   throw new AuthError(403, 'Not authorized for this member');
 }
+
+// For the event detail page's management actions (complete, cancel,
+// check-in QR, remove attendance) — Committee Heads have full parity with
+// E-Board here, unlike the E-Board-only endpoints above (manual point
+// adjustments, form review, standing calc, sheets sync).
+export async function requireEventManagerCaller(event) {
+  const member = await requireCaller(event);
+  if (member.role !== 'eboard' && member.role !== 'committee_head') {
+    throw new AuthError(403, 'E-Board or Committee Head access required');
+  }
+  return member;
+}
+
+// Manual check-in on the event detail page: a Committee Head checking in
+// someone else, same as E-Board today.
+export async function requireSelfOrEventManagerCaller(event, subjectMemberId) {
+  const member = await requireCaller(event);
+  if (member.role === 'eboard' || member.role === 'committee_head' || member.id === subjectMemberId) return member;
+  throw new AuthError(403, 'Not authorized for this member');
+}

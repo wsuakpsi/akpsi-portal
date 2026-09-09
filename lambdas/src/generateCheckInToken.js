@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
-import { wrapEboardHandler } from './lib/httpResponse.js';
+import { wrapEventManagerHandler } from './lib/httpResponse.js';
 import { signCheckInToken, CHECKIN_WINDOW_HOURS } from './lib/qrToken.js';
 
 export async function generateCheckInToken(eventId) {
@@ -29,4 +29,4 @@ export async function generateCheckInToken(eventId) {
   return { success: true, token, expiresAt: expiresAt.toISOString() };
 }
 
-export const handler = wrapEboardHandler(generateCheckInToken, (payload) => [payload.eventId]);
+export const handler = wrapEventManagerHandler(generateCheckInToken, (payload) => [payload.eventId]);

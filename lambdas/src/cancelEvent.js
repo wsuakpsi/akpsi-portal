@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
-import { wrapEboardHandler } from './lib/httpResponse.js';
+import { wrapEventManagerHandler } from './lib/httpResponse.js';
 import { getCalendarClient } from './lib/googleCalendarClient.js';
 
 // Spec 7.4 cancellation cascade: cancelling a required event voids any
@@ -74,4 +74,4 @@ export async function cancelEvent(eventId) {
   return { success: true, formsVoided: approvedForms.length, calendarDeleted, calendarError };
 }
 
-export const handler = wrapEboardHandler(cancelEvent, (payload) => [payload.eventId]);
+export const handler = wrapEventManagerHandler(cancelEvent, (payload) => [payload.eventId]);

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
-import { wrapEboardHandler } from './lib/httpResponse.js';
+import { wrapEventManagerHandler } from './lib/httpResponse.js';
 
 const NO_SHOW_PENALTY = -10;
 
@@ -105,4 +105,4 @@ export async function completeEvent(eventId) {
   return { success: true, noShows: noShows.length, attended: attendanceRows.length };
 }
 
-export const handler = wrapEboardHandler(completeEvent, (payload) => [payload.eventId]);
+export const handler = wrapEventManagerHandler(completeEvent, (payload) => [payload.eventId]);

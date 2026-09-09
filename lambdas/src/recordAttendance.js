@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
-import { wrapAuthedHandler } from './lib/httpResponse.js';
+import { wrapAuthedHandler, wrapSelfOrEventManagerHandler } from './lib/httpResponse.js';
 import { verifyCheckInToken } from './lib/qrToken.js';
 
 const DUPLICATE_ERROR = 'Attendance already recorded for this member and event';
@@ -84,7 +84,7 @@ export async function recordAttendance(eventId, memberId, checkInMethod, recorde
 // detail page, `recorded_by` is always the acting officer's id — including
 // when an officer checks themself in manually, since the point is "who ran
 // this check-in," not "whose attendance is this."
-export const handler = wrapAuthedHandler(
+export const handler = wrapSelfOrEventManagerHandler(
   recordAttendance,
   (payload, caller) => [payload.eventId, payload.memberId, 'manual', caller.id],
   (payload) => payload.memberId,
