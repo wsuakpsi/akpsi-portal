@@ -13,7 +13,7 @@ export async function getMyProfile() {
   // Try matching by UID first (normal case)
   const { data, error } = await supabase
     .from('members')
-    .select('id, full_name, email, role, status, pledge_class, eboard_position')
+    .select('id, full_name, email, role, status, pledge_class, eboard_position, phone_number, resume_url, avatar_url')
     .eq('id', session.user.id)
     .maybeSingle()
 

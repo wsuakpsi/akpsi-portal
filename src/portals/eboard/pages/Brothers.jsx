@@ -66,7 +66,7 @@ function InviteBrotherForm({ onClose, onAdded }) {
   )
 }
 
-function PendingInvites({ invites, onResend, resendingEmail }) {
+function PendingInvites({ invites, onResend, resendingEmail, onDelete, deletingEmail }) {
   if (invites.length === 0) return null
 
   return (
@@ -87,13 +87,20 @@ function PendingInvites({ invites, onResend, resendingEmail }) {
               <td>{inv.full_name}</td>
               <td>{inv.email}</td>
               <td>{inv.pledge_class}</td>
-              <td>
+              <td style={{ display: 'flex', gap: '0.4rem' }}>
                 <button
                   className="btn small secondary"
-                  disabled={resendingEmail === inv.email}
+                  disabled={resendingEmail === inv.email || deletingEmail === inv.email}
                   onClick={() => onResend(inv)}
                 >
                   {resendingEmail === inv.email ? 'Resending...' : 'Resend invite'}
+                </button>
+                <button
+                  className="btn small danger"
+                  disabled={resendingEmail === inv.email || deletingEmail === inv.email}
+                  onClick={() => onDelete(inv)}
+                >
+                  {deletingEmail === inv.email ? 'Deleting...' : 'Delete'}
                 </button>
               </td>
             </tr>
@@ -116,6 +123,7 @@ export default function Brothers() {
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [pendingInvites, setPendingInvites] = useState([])
   const [resendingEmail, setResendingEmail] = useState(null)
+  const [deletingEmail, setDeletingEmail] = useState(null)
 
   async function handleResend(invite) {
     setResendingEmail(invite.email)
@@ -131,6 +139,22 @@ export default function Brothers() {
       toast.error(`Could not resend invite: ${err.message}`)
     } finally {
       setResendingEmail(null)
+    }
+  }
+
+  async function handleDeleteInvite(invite) {
+    const confirmed = window.confirm(`Delete the pending invite for ${invite.full_name} (${invite.email})?`)
+    if (!confirmed) return
+    setDeletingEmail(invite.email)
+    try {
+      const { error: deleteError } = await supabase.from('pending_invites').delete().eq('email', invite.email)
+      if (deleteError) throw deleteError
+      toast.success(`Invite for ${invite.full_name} deleted.`)
+      setPendingInvites((prev) => prev.filter((i) => i.email !== invite.email))
+    } catch (err) {
+      toast.error(`Could not delete invite: ${err.message}`)
+    } finally {
+      setDeletingEmail(null)
     }
   }
 
@@ -253,7 +277,13 @@ export default function Brothers() {
       </div>
       {error && <p className="error-text">{error}</p>}
 
-      <PendingInvites invites={pendingInvites} onResend={handleResend} resendingEmail={resendingEmail} />
+      <PendingInvites
+        invites={pendingInvites}
+        onResend={handleResend}
+        resendingEmail={resendingEmail}
+        onDelete={handleDeleteInvite}
+        deletingEmail={deletingEmail}
+      />
 
       <div className="toolbar">
         <input

@@ -369,6 +369,7 @@ a.row-link:hover {
   justify-content: center;
   font-weight: 700;
   font-size: 0.75rem;
+  object-fit: cover;
   flex: 0 0 34px;
 }
 

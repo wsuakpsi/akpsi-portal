@@ -3,7 +3,125 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { signOut } from '../../../lib/auth'
 import { getActiveSemester } from '../lib/queries'
-import Topbar from '../components/Topbar'
+import Topbar, { initials } from '../components/Topbar'
+
+const PHONE_RE = /^[0-9()+\-.\s]{7,20}$/
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024
+
+function ProfileEditForm({ profile, details, onSaved }) {
+  const [phone, setPhone] = useState(details.phone_number || '')
+  const [resumeUrl, setResumeUrl] = useState(details.resume_url || '')
+  const [savingText, setSavingText] = useState(false)
+  const [savingAvatar, setSavingAvatar] = useState(false)
+
+  async function handleSaveText(e) {
+    e.preventDefault()
+    const trimmedPhone = phone.trim()
+    const trimmedResume = resumeUrl.trim()
+    if (trimmedPhone && !PHONE_RE.test(trimmedPhone)) {
+      toast.error("That phone number doesn't look right.")
+      return
+    }
+    if (trimmedResume && !/^https?:\/\//i.test(trimmedResume)) {
+      toast.error('Resume link must start with http:// or https://.')
+      return
+    }
+    setSavingText(true)
+    try {
+      const patch = { phone_number: trimmedPhone || null, resume_url: trimmedResume || null }
+      const { error } = await supabase.from('members').update(patch).eq('id', profile.id)
+      if (error) throw error
+      toast.success('Profile updated.')
+      onSaved(patch)
+    } catch (err) {
+      toast.error(`Could not update profile: ${err.message}`)
+    } finally {
+      setSavingText(false)
+    }
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file.')
+      e.target.value = ''
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error('Image must be smaller than 5MB.')
+      e.target.value = ''
+      return
+    }
+    setSavingAvatar(true)
+    try {
+      const path = `${profile.id}/${Date.now()}-${file.name}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file)
+      if (uploadError) throw uploadError
+      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(path)
+      const { error: updateError } = await supabase
+        .from('members')
+        .update({ avatar_url: publicUrlData.publicUrl })
+        .eq('id', profile.id)
+      if (updateError) throw updateError
+      toast.success('Profile picture updated.')
+      onSaved({ avatar_url: publicUrlData.publicUrl })
+    } catch (err) {
+      toast.error(`Could not upload picture: ${err.message}`)
+    } finally {
+      setSavingAvatar(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="card">
+      <h2>Edit profile</h2>
+      <div className="form-field">
+        <label htmlFor="avatar-upload">Profile picture</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {details.avatar_url ? (
+            <img
+              src={details.avatar_url}
+              alt=""
+              style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div className="avatar" style={{ width: 56, height: 56, fontSize: '1.1rem' }}>
+              {initials(profile.full_name)}
+            </div>
+          )}
+          <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} disabled={savingAvatar} />
+        </div>
+      </div>
+      <form onSubmit={handleSaveText}>
+        <div className="form-field">
+          <label htmlFor="phone">Phone number</label>
+          <input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. (555) 123-4567"
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="resume">Resume link</label>
+          <input
+            id="resume"
+            type="url"
+            value={resumeUrl}
+            onChange={(e) => setResumeUrl(e.target.value)}
+            placeholder="https://..."
+          />
+        </div>
+        <button type="submit" className="btn" disabled={savingText}>
+          {savingText ? 'Saving...' : 'Save'}
+        </button>
+      </form>
+    </div>
+  )
+}
 
 // Spec 8.2: "Proof upload is mandatory — Lambda rejects submissions without
 // a proof_url." The DB already enforces this (proof_url NOT NULL since
@@ -91,6 +209,11 @@ export default function Profile({ profile }) {
   const [application, setApplication] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [bips, setBips] = useState([])
+  const [details, setDetails] = useState({
+    phone_number: profile.phone_number || null,
+    resume_url: profile.resume_url || null,
+    avatar_url: profile.avatar_url || null,
+  })
 
   async function load() {
     setLoading(true)
@@ -98,6 +221,14 @@ export default function Profile({ profile }) {
     try {
       const activeSemester = await getActiveSemester()
       setSemester(activeSemester)
+
+      const { data: memberRow, error: memberError } = await supabase
+        .from('members')
+        .select('phone_number, resume_url, avatar_url')
+        .eq('id', profile.id)
+        .single()
+      if (memberError) throw memberError
+      setDetails(memberRow)
 
       if (activeSemester) {
         // A denied application allows resubmission (spec 8.2), so a member
@@ -177,7 +308,29 @@ export default function Profile({ profile }) {
           <div className="meta">Status</div>
           <div className="title">{profile.status}</div>
         </div>
+        <div className="list-item">
+          <div className="meta">Phone number</div>
+          <div className="title">{details.phone_number || '—'}</div>
+        </div>
+        <div className="list-item">
+          <div className="meta">Resume</div>
+          <div className="title">
+            {details.resume_url ? (
+              <a href={details.resume_url} target="_blank" rel="noreferrer">
+                View resume
+              </a>
+            ) : (
+              '—'
+            )}
+          </div>
+        </div>
       </div>
+
+      <ProfileEditForm
+        profile={profile}
+        details={details}
+        onSaved={(patch) => setDetails((d) => ({ ...d, ...patch }))}
+      />
 
       <div className="card">
         <h2>Lower threshold application</h2>

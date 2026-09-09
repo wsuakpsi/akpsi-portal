@@ -578,7 +578,15 @@ export default function BrotherDetail({ profile }) {
       <div className="detail-layout">
         <div>
           <div className="card">
-            <div className="avatar lg" style={{ marginBottom: '0.75rem' }}>{initials}</div>
+            {member.avatar_url ? (
+              <img
+                src={member.avatar_url}
+                alt=""
+                style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', marginBottom: '0.75rem' }}
+              />
+            ) : (
+              <div className="avatar lg" style={{ marginBottom: '0.75rem' }}>{initials}</div>
+            )}
             <h2 style={{ fontSize: '1.15rem' }}>{member.full_name}</h2>
             <div style={{ display: 'flex', gap: '0.4rem', margin: '0.5rem 0 1rem' }}>
               <span className={`status-badge ${member.status}`}>{member.status}</span>
@@ -588,6 +596,17 @@ export default function BrotherDetail({ profile }) {
               <tbody>
                 <tr><th>Pledge class</th><td>{member.pledge_class}</td></tr>
                 <tr><th>Email</th><td>{member.email}</td></tr>
+                <tr><th>Phone</th><td>{member.phone_number || '—'}</td></tr>
+                <tr>
+                  <th>Resume</th>
+                  <td>
+                    {member.resume_url ? (
+                      <a href={member.resume_url} target="_blank" rel="noreferrer">View resume</a>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                </tr>
                 <tr><th>Position</th><td>{member.eboard_position || '—'}</td></tr>
                 <tr><th>Threshold</th><td>{thresholdType === 'lower' ? 'Lower' : 'Standard'}</td></tr>
               </tbody>

@@ -431,6 +431,7 @@ button {
   color: #0a1628;
   font-size: 0.75rem;
   font-weight: 600;
+  object-fit: cover;
 }
 
 .standing-card {

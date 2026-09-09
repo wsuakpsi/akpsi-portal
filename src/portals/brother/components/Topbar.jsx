@@ -113,7 +113,11 @@ export default function Topbar({ profile, children }) {
       <div className="topbar-actions">
         <NotificationBell memberId={profile.id} />
         <Link to="/brother/profile" className="avatar-link" aria-label="Profile">
-          <div className="avatar">{initials(profile.full_name)}</div>
+          {profile.avatar_url ? (
+            <img className="avatar" src={profile.avatar_url} alt="" />
+          ) : (
+            <div className="avatar">{initials(profile.full_name)}</div>
+          )}
         </Link>
       </div>
     </div>
