@@ -167,6 +167,68 @@ function RoleFlip({ member, onChanged }) {
   )
 }
 
+function ThresholdChange({ member, semester, application, reviewerId, onChanged }) {
+  const [busy, setBusy] = useState(false)
+  const isLower = application?.status === 'approved'
+
+  async function handleSetThreshold(nextStatus) {
+    if (!semester) return
+    setBusy(true)
+    try {
+      const now = new Date().toISOString()
+      if (application) {
+        const { error: updateError } = await supabase
+          .from('lower_threshold_applications')
+          .update({ status: nextStatus, reviewed_by: reviewerId, reviewed_at: now })
+          .eq('id', application.id)
+        if (updateError) throw updateError
+      } else {
+        const { error: insertError } = await supabase.from('lower_threshold_applications').insert({
+          member_id: member.id,
+          semester_id: semester.id,
+          reason: 'Set by E-Board',
+          status: nextStatus,
+          reviewed_by: reviewerId,
+          reviewed_at: now,
+        })
+        if (insertError) throw insertError
+      }
+      const { error: notifError } = await supabase.from('notifications').insert({
+        member_id: member.id,
+        title: 'Threshold updated',
+        body:
+          nextStatus === 'approved'
+            ? "You've been moved to the lower point threshold."
+            : 'Your threshold has been reset to the standard requirement.',
+      })
+      if (notifError) throw notifError
+      toast.success(`${member.full_name} moved to ${nextStatus === 'approved' ? 'lower' : 'standard'} threshold.`)
+      onChanged()
+    } catch (err) {
+      toast.error(`Could not update threshold: ${err.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!semester) return <p className="note-text">No active semester configured.</p>
+
+  return (
+    <div>
+      <p className="note-text">Currently on the {isLower ? 'lower' : 'standard'} threshold.</p>
+      {isLower ? (
+        <button type="button" className="btn secondary" disabled={busy} onClick={() => handleSetThreshold('denied')}>
+          {busy ? 'Saving...' : 'Revert to standard threshold'}
+        </button>
+      ) : (
+        <button type="button" className="btn" disabled={busy} onClick={() => handleSetThreshold('approved')}>
+          {busy ? 'Saving...' : 'Move to lower threshold'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function StatusChange({ member, onChanged }) {
   const [status, setStatus] = useState(member.status)
   const [busy, setBusy] = useState(false)
@@ -419,8 +481,8 @@ export default function BrotherDetail({ profile }) {
   const [meetingRows, setMeetingRows] = useState([])
   const [bipRows, setBipRows] = useState([])
   const [showBipForm, setShowBipForm] = useState(false)
-  const [thresholdType, setThresholdType] = useState('standard')
-  const [activePanel, setActivePanel] = useState(null) // null | 'role' | 'status' | 'points'
+  const [thresholdApp, setThresholdApp] = useState(null)
+  const [activePanel, setActivePanel] = useState(null) // null | 'role' | 'status' | 'points' | 'threshold'
 
   async function load() {
     setLoading(true)
@@ -452,9 +514,11 @@ export default function BrotherDetail({ profile }) {
         activeSemester
           ? supabase
               .from('lower_threshold_applications')
-              .select('status')
+              .select('id, status')
               .eq('member_id', id)
               .eq('semester_id', activeSemester.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
       ])
@@ -474,7 +538,7 @@ export default function BrotherDetail({ profile }) {
       setLedgerRows(ledgerRes.data || [])
       setMeetingRows(filteredMeetings)
       setBipRows(bipRes.data || [])
-      setThresholdType(ltaRes.data?.status === 'approved' ? 'lower' : 'standard')
+      setThresholdApp(ltaRes.data || null)
     } catch (err) {
       setError(err.message)
       toast.error(`Could not load brother details: ${err.message}`)
@@ -492,6 +556,7 @@ export default function BrotherDetail({ profile }) {
   if (error) return <div className="eboard-main"><p className="error-text">{error}</p></div>
   if (!member) return <div className="eboard-main">Brother not found.</div>
 
+  const thresholdType = thresholdApp?.status === 'approved' ? 'lower' : 'standard'
   const thresholds = thresholdType === 'lower' ? LOWER_THRESHOLDS : STANDARD_THRESHOLDS
   const categoryTotals = Object.fromEntries(POINT_CATEGORIES.map((c) => [c, 0]))
   for (const row of ledgerRows) {
@@ -541,6 +606,9 @@ export default function BrotherDetail({ profile }) {
               <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'status' ? null : 'status')}>
                 Change status
               </button>
+              <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setActivePanel(activePanel === 'threshold' ? null : 'threshold')}>
+                Change threshold
+              </button>
 <button type="button" className="btn secondary" style={{ textAlign: 'left' }} onClick={() => setShowBipForm((v) => !v)}>
                 Open improvement plan
               </button>
@@ -578,6 +646,17 @@ export default function BrotherDetail({ profile }) {
             {activePanel === 'status' && (
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
                 <StatusChange member={member} onChanged={load} />
+              </div>
+            )}
+            {activePanel === 'threshold' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f0f0ee' }}>
+                <ThresholdChange
+                  member={member}
+                  semester={semester}
+                  application={thresholdApp}
+                  reviewerId={profile.id}
+                  onChanged={load}
+                />
               </div>
             )}
 {showBipForm && (
