@@ -4,7 +4,7 @@ import QRCode from 'qrcode'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { formatDateTime } from '../lib/queries'
+import { formatDateTime, toDatetimeLocalValue, EVENT_CATEGORIES } from '../lib/queries'
 
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
@@ -44,6 +44,109 @@ function RemoveAttendanceForm({ member, onClose, onRemoved }) {
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             <button type="submit" className="btn danger" disabled={submitting || !note.trim()}>
               {submitting ? 'Removing...' : 'Remove attendance'}
+            </button>
+            <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function EditEventForm({ event, onClose, onSaved }) {
+  const [name, setName] = useState(event.name)
+  const [category, setCategory] = useState(event.category)
+  const [pointsValue, setPointsValue] = useState(event.points_value)
+  const [isRequired, setIsRequired] = useState(event.is_required)
+  const [location, setLocation] = useState(event.location || '')
+  const [startsAt, setStartsAt] = useState(toDatetimeLocalValue(event.starts_at))
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({
+          name,
+          category,
+          points_value: Number(pointsValue) || 0,
+          is_required: isRequired,
+          location: location || null,
+          starts_at: new Date(startsAt).toISOString(),
+        })
+        .eq('id', event.id)
+      if (error) throw error
+
+      if (event.google_calendar_event_id) {
+        toast('Saved. Note: this does not update the existing Google Calendar event.', { icon: 'ℹ️' })
+      } else {
+        toast.success('Event updated.')
+      }
+      onSaved()
+    } catch (err) {
+      toast.error(`Could not update event: ${err.message}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Edit event</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-field">
+            <label htmlFor="edit-name">Name</label>
+            <input id="edit-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="form-field">
+            <label htmlFor="edit-category">Category</label>
+            <select id="edit-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+              {EVENT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="edit-points_value">Points value</label>
+            <input
+              id="edit-points_value"
+              type="number"
+              min="0"
+              value={pointsValue}
+              onChange={(e) => setPointsValue(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="edit-location">Location</label>
+            <input id="edit-location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
+          <div className="form-field">
+            <label htmlFor="edit-starts_at">Starts at</label>
+            <input
+              id="edit-starts_at"
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-field checkbox">
+            <input
+              id="edit-is_required"
+              type="checkbox"
+              checked={isRequired}
+              onChange={(e) => setIsRequired(e.target.checked)}
+            />
+            <label htmlFor="edit-is_required" style={{ marginBottom: 0 }}>Required event</label>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+            <button type="submit" className="btn" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save changes'}
             </button>
             <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
               Cancel
@@ -164,6 +267,7 @@ export default function EventDetail() {
   const [rsvps, setRsvps] = useState([])
   const [attendance, setAttendance] = useState([])
   const [removeTarget, setRemoveTarget] = useState(null)
+  const [showEditForm, setShowEditForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [rsvpSearch, setRsvpSearch] = useState('')
   const [attendanceSearch, setAttendanceSearch] = useState('')
@@ -268,6 +372,7 @@ export default function EventDetail() {
         </table>
         {event.status === 'scheduled' && (
           <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
+            <button className="btn secondary" disabled={busy} onClick={() => setShowEditForm(true)}>Edit event</button>
             <button className="btn" disabled={busy} onClick={handleMarkComplete}>Mark complete</button>
             <button className="btn danger" disabled={busy} onClick={handleCancel}>Cancel event</button>
           </div>
@@ -356,6 +461,17 @@ export default function EventDetail() {
           member={removeTarget}
           onClose={() => setRemoveTarget(null)}
           onRemoved={(note) => handleRemoveAttendance(removeTarget, note)}
+        />
+      )}
+
+      {showEditForm && (
+        <EditEventForm
+          event={event}
+          onClose={() => setShowEditForm(false)}
+          onSaved={() => {
+            setShowEditForm(false)
+            load()
+          }}
         />
       )}
     </div>

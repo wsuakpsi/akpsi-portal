@@ -31,6 +31,15 @@ export function formatDate(iso) {
 
 export const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social']
 
+export const EVENT_CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra', 'meeting']
+
+// Converts an ISO timestamp to the value a <input type="datetime-local"> expects, in local time.
+export function toDatetimeLocalValue(iso) {
+  const d = new Date(iso)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 // Mirrors lambdas/src/lib/thresholds.js defaults, for display purposes only.
 export const STANDARD_THRESHOLDS = { professional: 40, service: 20, fundraising: 20, social: 20, total: 100 }
 export const LOWER_THRESHOLDS = { professional: 20, service: 10, fundraising: 10, social: 10, total: 50 }

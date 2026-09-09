@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester } from '../lib/queries'
+import { getActiveSemester, EVENT_CATEGORIES } from '../lib/queries'
 
-const CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra', 'meeting']
+const CATEGORIES = EVENT_CATEGORIES
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
 const ADD_TO_CALENDAR_URL = import.meta.env.VITE_ADD_TO_CALENDAR_URL
