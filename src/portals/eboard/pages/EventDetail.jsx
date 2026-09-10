@@ -55,6 +55,25 @@ function RemoveAttendanceForm({ member, onClose, onRemoved }) {
   )
 }
 
+function ConfirmModal({ title, body, confirmLabel, busy, onConfirm, onClose }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>{title}</h2>
+        <p className="note-text">{body}</p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
+            {busy ? 'Working...' : confirmLabel}
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EditEventForm({ event, onClose, onSaved }) {
   const [name, setName] = useState(event.name)
   const [category, setCategory] = useState(event.category)
@@ -268,6 +287,7 @@ export default function EventDetail() {
   const [attendance, setAttendance] = useState([])
   const [removeTarget, setRemoveTarget] = useState(null)
   const [showEditForm, setShowEditForm] = useState(false)
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [rsvpSearch, setRsvpSearch] = useState('')
   const [attendanceSearch, setAttendanceSearch] = useState('')
@@ -310,6 +330,7 @@ export default function EventDetail() {
     try {
       await callLambda(COMPLETE_EVENT_URL, { eventId: id })
       toast.success('Event marked complete.')
+      setShowCompleteConfirm(false)
       await load()
     } catch (err) {
       toast.error(`Could not mark event complete: ${err.message}`)
@@ -373,7 +394,9 @@ export default function EventDetail() {
         {event.status === 'scheduled' && (
           <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
             <button className="btn secondary" disabled={busy} onClick={() => setShowEditForm(true)}>Edit event</button>
-            <button className="btn" disabled={busy} onClick={handleMarkComplete}>Mark complete</button>
+            {new Date(event.starts_at) <= new Date() && (
+              <button className="btn" disabled={busy} onClick={() => setShowCompleteConfirm(true)}>Mark complete</button>
+            )}
             <button className="btn danger" disabled={busy} onClick={handleCancel}>Cancel event</button>
           </div>
         )}
@@ -472,6 +495,23 @@ export default function EventDetail() {
             setShowEditForm(false)
             load()
           }}
+        />
+      )}
+
+      {showCompleteConfirm && (
+        <ConfirmModal
+          title="Mark event complete?"
+          body={
+            event.category === 'meeting'
+              ? `This locks in attendance for "${event.name}". This cannot be undone from the UI.`
+              : `This locks in attendance for "${event.name}": brothers who checked in earn ${event.points_value} ` +
+                'point(s), and anyone who RSVPed "going" but never checked in gets a 10-point no-show penalty. ' +
+                'This cannot be undone from the UI.'
+          }
+          confirmLabel="Mark complete"
+          busy={busy}
+          onConfirm={handleMarkComplete}
+          onClose={() => setShowCompleteConfirm(false)}
         />
       )}
     </div>

@@ -308,9 +308,11 @@ export default function Events() {
         <div className="event-row-actions">
           {event.status === 'scheduled' && (
             <>
-              <button className="btn small secondary" disabled={isBusy} onClick={() => handleMarkComplete(event)}>
-                Mark complete
-              </button>
+              {date <= new Date() && (
+                <button className="btn small secondary" disabled={isBusy} onClick={() => handleMarkComplete(event)}>
+                  Mark complete
+                </button>
+              )}
               <Link className="btn small secondary" to={`/eboard/events/${event.id}`}>View</Link>
               <button className="btn small danger" disabled={isBusy} onClick={() => handleCancel(event)}>
                 Cancel
