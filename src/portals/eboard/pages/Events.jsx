@@ -10,6 +10,25 @@ const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
 const ADD_TO_CALENDAR_URL = import.meta.env.VITE_ADD_TO_CALENDAR_URL
 
+function ConfirmModal({ title, body, confirmLabel, busy, onConfirm, onClose }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>{title}</h2>
+        <p className="note-text">{body}</p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
+            {busy ? 'Working...' : confirmLabel}
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AddEventForm({ semester, onClose, onAdded }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('professional')
@@ -155,6 +174,7 @@ export default function Events() {
   const [attendanceCounts, setAttendanceCounts] = useState({})
   const [showAddForm, setShowAddForm] = useState(false)
   const [busyEventId, setBusyEventId] = useState(null)
+  const [completeTarget, setCompleteTarget] = useState(null)
   const [showPast, setShowPast] = useState(false)
   const [searchName, setSearchName] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -217,6 +237,7 @@ export default function Events() {
     try {
       await callLambda(COMPLETE_EVENT_URL, { eventId: event.id })
       toast.success(`${event.name} marked complete.`)
+      setCompleteTarget(null)
       await load()
     } catch (err) {
       toast.error(`Could not mark event complete: ${err.message}`)
@@ -309,7 +330,7 @@ export default function Events() {
           {event.status === 'scheduled' && (
             <>
               {date <= new Date() && (
-                <button className="btn small secondary" disabled={isBusy} onClick={() => handleMarkComplete(event)}>
+                <button className="btn small secondary" disabled={isBusy} onClick={() => setCompleteTarget(event)}>
                   Mark complete
                 </button>
               )}
@@ -406,6 +427,23 @@ export default function Events() {
             setShowAddForm(false)
             load()
           }}
+        />
+      )}
+
+      {completeTarget && (
+        <ConfirmModal
+          title="Mark event complete?"
+          body={
+            completeTarget.category === 'meeting'
+              ? `This locks in attendance for "${completeTarget.name}". This cannot be undone from the UI.`
+              : `This locks in attendance for "${completeTarget.name}": brothers who checked in earn ` +
+                `${completeTarget.points_value} point(s), and anyone who RSVPed "going" but never checked in gets ` +
+                'a 10-point no-show penalty. This cannot be undone from the UI.'
+          }
+          confirmLabel="Mark complete"
+          busy={busyEventId === completeTarget.id}
+          onConfirm={() => handleMarkComplete(completeTarget)}
+          onClose={() => setCompleteTarget(null)}
         />
       )}
     </div>
