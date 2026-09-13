@@ -144,7 +144,9 @@ export default function App() {
   } else if (PORTAL === 'eboard' && (profile.role === 'eboard' || profile.role === 'committee_head')) {
     content = (
       <Routes>
-        {profile.role === 'eboard' && <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />}
+        {(profile.role === 'eboard' || profile.role === 'committee_head') && (
+          <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />
+        )}
         <Route path="/*" element={<EboardRouter profile={profile} />} />
       </Routes>
     )
