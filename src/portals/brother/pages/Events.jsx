@@ -171,15 +171,27 @@ export default function Events({ profile }) {
         <div className="topbar-title">Events</div>
       </Topbar>
       <div className="page">
-        {loading && <p className="empty-state">Loading...</p>}
-        {error && <p className="error-text">{error}</p>}
+        {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+        {error && <p className="error-text" role="alert">{error}</p>}
 
         {!loading && (
-          <div className="tabs">
-            <button className={`tab ${view === 'upcoming' ? 'active' : ''}`} onClick={() => setView('upcoming')}>
+          <div className="tabs" role="tablist" aria-label="Event timeframe">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'upcoming'}
+              className={`tab ${view === 'upcoming' ? 'active' : ''}`}
+              onClick={() => setView('upcoming')}
+            >
               Upcoming
             </button>
-            <button className={`tab ${view === 'past' ? 'active' : ''}`} onClick={() => setView('past')}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'past'}
+              className={`tab ${view === 'past' ? 'active' : ''}`}
+              onClick={() => setView('past')}
+            >
               Past
             </button>
           </div>

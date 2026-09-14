@@ -48,8 +48,15 @@ function NotificationBell({ memberId }) {
     function handleClickOutside(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
     }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [open])
 
   async function markRead(id) {
@@ -69,17 +76,19 @@ function NotificationBell({ memberId }) {
       <button
         type="button"
         className="notif-bell"
-        aria-label="Notifications"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+        aria-haspopup="true"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+        {unreadCount > 0 && <span className="notif-badge" aria-hidden="true">{unreadCount}</span>}
       </button>
 
       {open && (
-        <div className="notif-dropdown">
+        <div className="notif-dropdown" role="region" aria-label="Notifications">
           <div className="notif-dropdown-head">
             <span>Notifications</span>
             {unreadCount > 0 && (
@@ -90,15 +99,17 @@ function NotificationBell({ memberId }) {
           </div>
           {loaded && notifications.length === 0 && <p className="notif-empty">No notifications yet.</p>}
           {notifications.map((n) => (
-            <div
+            <button
               key={n.id}
+              type="button"
               className={`notif-item ${n.read ? '' : 'unread'}`}
+              aria-label={`${n.read ? '' : 'Unread: '}${n.title}`}
               onClick={() => !n.read && markRead(n.id)}
             >
               <div className="notif-item-title">{n.title}</div>
               <div className="notif-item-body">{n.body}</div>
               <div className="notif-item-time">{timeAgo(n.created_at)}</div>
-            </div>
+            </button>
           ))}
         </div>
       )}

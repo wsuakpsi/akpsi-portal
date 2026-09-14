@@ -33,7 +33,7 @@ export default function Discipline() {
     load()
   }, [])
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   const filtered = bips.filter((bip) => {
     if (statusFilter !== 'all' && bip.status !== statusFilter) return false
@@ -52,16 +52,17 @@ export default function Discipline() {
           <p className="page-subtitle">{openCount} open improvement plan{openCount === 1 ? '' : 's'}</p>
         </div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="toolbar">
         <input
-          type="text"
+          type="search"
+          aria-label="Search by brother"
           placeholder="Search by brother"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           {STATUS_FILTERS.map((s) => (
             <option key={s} value={s}>{s === 'all' ? 'All statuses' : s}</option>
           ))}
@@ -80,7 +81,7 @@ export default function Discipline() {
                 <th>Due</th>
                 <th>Status</th>
                 <th>Resolution note</th>
-                <th></th>
+                <th><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>

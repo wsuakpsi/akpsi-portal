@@ -44,9 +44,9 @@ export default function CheckIn({ profile }) {
       </Topbar>
       <div className="page">
         <div className="card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-          {status === 'checking' && <p>Checking you in...</p>}
-          {status === 'success' && <p className="note-text">{message}</p>}
-          {status === 'error' && <p className="error-text">{message}</p>}
+          {status === 'checking' && <p role="status" aria-live="polite">Checking you in...</p>}
+          {status === 'success' && <p className="note-text" role="status">{message}</p>}
+          {status === 'error' && <p className="error-text" role="alert">{message}</p>}
         </div>
       </div>
     </div>

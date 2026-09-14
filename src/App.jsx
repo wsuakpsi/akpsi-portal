@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import { getMyProfile, signOut } from './lib/auth'
+import { isInviteUrl, isRecoveryUrl, initialAuthUrl } from './lib/authUrl'
 import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
 import ResetPassword from './pages/ResetPassword'
@@ -54,16 +55,23 @@ export default function App() {
   const [session, setSession] = useState(undefined)
   const [profile, setProfile] = useState(undefined)
   const [profileError, setProfileError] = useState(null)
-  const [isRecovery, setIsRecovery] = useState(false)
+  // Same fallback for password-reset links that land on "/" with a
+  // token_hash-style URL (no session yet, so PASSWORD_RECOVERY never fires).
+  const [isRecovery, setIsRecovery] = useState(() => isRecoveryUrl() && Boolean(initialAuthUrl.tokenHash))
   // Invite links land here via a plain SIGNED_IN event (not PASSWORD_RECOVERY,
-  // which only fires for "forgot password" links), so the only reliable
-  // signal that this is an unfinished invite is the /set-password path itself.
-  // Must be checked before the profile/portal logic below runs, or a brother
-  // who never set a password ends up straight in the portal.
+  // which only fires for "forgot password" links). Two signals identify an
+  // unfinished invite, and either is enough:
+  //   - the /set-password path (where the invite's redirectTo points), or
+  //   - `type=invite` in the URL payload Supabase sends back. This is what
+  //     saves the flow when Supabase ignores redirectTo because the URL isn't
+  //     on the project's Redirect URL allow-list and falls back to the Site
+  //     URL — the brother lands on "/" signed in, and without this check
+  //     they'd go straight into the portal with no password set.
+  // Must be checked before the profile/portal logic below runs.
   // S3/CloudFront 301-redirects "/set-password" to "/set-password/" (adds a
   // trailing slash) before the app ever sees the URL, so strip it before comparing.
   const [isInvite, setIsInvite] = useState(
-    () => window.location.pathname.replace(/\/$/, '') === '/set-password'
+    () => window.location.pathname.replace(/\/$/, '') === '/set-password' || isInviteUrl()
   )
   const [isJoin, setIsJoin] = useState(
     () => window.location.pathname.replace(/\/$/, '') === '/join'
@@ -76,7 +84,11 @@ export default function App() {
         setSession(newSession)
         return
       }
-      setIsRecovery(false)
+      // Only a sign-out ends recovery mode here. INITIAL_SESSION / SIGNED_IN
+      // fire during the token_hash reset flow (before the new password is
+      // saved) and must not kick the brother off the reset page — the page
+      // itself calls onDone when it's finished.
+      if (event === 'SIGNED_OUT') setIsRecovery(false)
       setSession(newSession)
     })
 

@@ -8,6 +8,9 @@ const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
 // here does NOT roll back the DB insert.
 export async function addEventToCalendar(name, startsAt, location, category, durationMinutes = 120, isRequired = false, description = null, dressCode = null) {
   if (!name || !startsAt) return { success: false, error: 'name and startsAt are required' };
+  if (typeof category !== 'string' || !category) return { success: false, error: 'category is required' };
+  if (Number.isNaN(new Date(startsAt).getTime())) return { success: false, error: 'startsAt must be a valid date' };
+  if (!Number.isFinite(Number(durationMinutes)) || Number(durationMinutes) <= 0) durationMinutes = 120;
   if (!CALENDAR_ID) return { success: false, error: 'GOOGLE_CALENDAR_ID is not configured' };
 
   const calendar = await getCalendarClient();

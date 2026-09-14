@@ -5,6 +5,12 @@ import { wrapEboardHandler } from './lib/httpResponse.js';
 // but an officer can tag a specific category (e.g. 'fundraising') so the
 // points count toward that category's standing threshold, not just the
 // overall total — see calculateEndOfSemesterStanding.js.
+// Guardrails against fat-fingered (or scripted) adjustments — a whole
+// semester's standard threshold is 100 points, so nothing legitimate needs
+// more than this in one entry.
+const MAX_ABS_DELTA = 1000;
+const MAX_NOTE_LENGTH = 1000;
+
 const ALLOWED_CATEGORIES = [
   'adjustment',
   'professional',
@@ -25,6 +31,12 @@ export async function postManualPointAdjustment(memberId, semesterId, delta, not
   }
   if (!Number.isInteger(delta)) {
     return { success: false, error: 'delta must be an integer' };
+  }
+  if (Math.abs(delta) > MAX_ABS_DELTA) {
+    return { success: false, error: `delta must be between -${MAX_ABS_DELTA} and ${MAX_ABS_DELTA}` };
+  }
+  if (note.length > MAX_NOTE_LENGTH) {
+    return { success: false, error: `note must be ${MAX_NOTE_LENGTH} characters or fewer` };
   }
   if (!ALLOWED_CATEGORIES.includes(category)) {
     return { success: false, error: `category must be one of: ${ALLOWED_CATEGORIES.join(', ')}` };

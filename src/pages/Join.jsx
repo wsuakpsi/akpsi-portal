@@ -176,6 +176,7 @@ export default function Join({ onDone }) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     autoComplete="new-password"
+                    minLength={8}
                     required
                   />
                 </div>
@@ -193,7 +194,7 @@ export default function Join({ onDone }) {
                   />
                 </div>
 
-                {error && <div className="login-error">{error}</div>}
+                {error && <div className="login-error" role="alert">{error}</div>}
 
                 <button type="submit" className="login-btn" disabled={loading}>
                   <span className="login-btn-inner">

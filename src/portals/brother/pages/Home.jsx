@@ -103,7 +103,7 @@ export default function Home({ profile }) {
       </Topbar>
 
       <div className="page">
-        {error && <p className="error-text">{error}</p>}
+        {error && <p className="error-text" role="alert">{error}</p>}
 
         <div className="standing-card">
           <div className="standing-row">

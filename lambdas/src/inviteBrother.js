@@ -3,8 +3,17 @@ import { wrapEboardHandler } from './lib/httpResponse.js';
 
 const BROTHER_PORTAL_URL = process.env.BROTHER_PORTAL_URL || 'https://brother.wsuakpsi.com';
 
+// Deliberately loose — just enough to reject obvious typos before we spend a
+// Supabase Auth admin call on them.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function inviteBrother(email, fullName, pledgeClass, resend = false) {
-  if (!email || !fullName || !pledgeClass) {
+  if (typeof email !== 'string' || typeof fullName !== 'string' || typeof pledgeClass !== 'string') {
+    return { success: false, error: 'email, fullName, and pledgeClass are required' };
+  }
+  fullName = fullName.trim();
+  pledgeClass = pledgeClass.trim();
+  if (!email.trim() || !fullName || !pledgeClass) {
     return { success: false, error: 'email, fullName, and pledgeClass are required' };
   }
 
@@ -12,6 +21,9 @@ export async function inviteBrother(email, fullName, pledgeClass, resend = false
   // store the same casing here so the first-login lookup in getMyProfile()
   // (src/lib/auth.js) actually matches.
   email = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 254) {
+    return { success: false, error: 'That email address does not look valid' };
+  }
 
   const supabase = getSupabaseClient();
 

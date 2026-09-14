@@ -40,8 +40,8 @@ export default function Leaderboard({ profile }) {
         <div className="topbar-title">Leaderboard</div>
       </Topbar>
       <div className="page">
-        {loading && <p className="empty-state">Loading...</p>}
-        {error && <p className="error-text">{error}</p>}
+        {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+        {error && <p className="error-text" role="alert">{error}</p>}
         {!loading && rows.length === 0 && <p className="empty-state">No points recorded yet this semester.</p>}
         {rows.map((row, i) => (
           <div className={`leaderboard-row ${row.member_id === profile.id ? 'me' : ''}`} key={row.member_id}>

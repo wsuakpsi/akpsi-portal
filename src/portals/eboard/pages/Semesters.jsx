@@ -99,12 +99,12 @@ export default function Semesters() {
     load()
   }, [])
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   return (
     <div className="eboard-main">
       <h1>Semesters</h1>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="card">
         <h2>Create new semester</h2>

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
-import { wrapAuthedHandler, wrapSelfOrEventManagerHandler } from './lib/httpResponse.js';
+import { wrapAuthedHandler, wrapEventManagerHandler } from './lib/httpResponse.js';
 import { verifyCheckInToken } from './lib/qrToken.js';
 
 const DUPLICATE_ERROR = 'Attendance already recorded for this member and event';
@@ -80,14 +80,18 @@ export async function recordAttendance(eventId, memberId, checkInMethod, recorde
   return { success: true };
 }
 
-// Manual check-in fallback (spec 6.7): E-Board records it from the event
-// detail page, `recorded_by` is always the acting officer's id — including
-// when an officer checks themself in manually, since the point is "who ran
-// this check-in," not "whose attendance is this."
-export const handler = wrapSelfOrEventManagerHandler(
+// Manual check-in fallback (spec 6.7): E-Board / Committee Heads record it
+// from the event detail page, `recorded_by` is always the acting officer's
+// id — including when an officer checks themself in manually, since the
+// point is "who ran this check-in," not "whose attendance is this."
+//
+// Officer-only on purpose: the brother portal never calls this route (it
+// only uses the QR path below), and a "self or officer" rule here would let
+// any brother award themselves attendance points for any scheduled event
+// with one direct POST.
+export const handler = wrapEventManagerHandler(
   recordAttendance,
   (payload, caller) => [payload.eventId, payload.memberId, 'manual', caller.id],
-  (payload) => payload.memberId,
 );
 
 // QR check-in path (spec 6.6): the token stands in for eventId — the brother

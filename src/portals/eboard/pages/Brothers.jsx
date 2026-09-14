@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester } from '../lib/queries'
+import Modal from '../../../components/Modal'
 
 const INVITE_BROTHER_URL = import.meta.env.VITE_INVITE_BROTHER_URL
 const BROTHER_PORTAL_URL = import.meta.env.VITE_BROTHER_PORTAL_URL || window.location.origin
@@ -33,36 +34,34 @@ function InviteBrotherForm({ onClose, onAdded }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Invite brother</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="full_name">Full name</label>
-            <input id="full_name" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-          </div>
-          <div className="form-field">
-            <label htmlFor="email">Email</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-          <div className="form-field">
-            <label htmlFor="pledge_class">Pledge class</label>
-            <input id="pledge_class" type="text" value={pledgeClass} onChange={(e) => setPledgeClass(e.target.value)} required />
-          </div>
-          <p className="note-text">
-            Creates their profile and sends an invite email. They'll set their own password when they click the link.
-          </p>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? 'Sending invite...' : 'Send invite'}
-            </button>
-            <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose} labelledBy="invite-brother-title">
+      <h2 id="invite-brother-title">Invite brother</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label htmlFor="full_name">Full name</label>
+          <input id="full_name" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="pledge_class">Pledge class</label>
+          <input id="pledge_class" type="text" value={pledgeClass} onChange={(e) => setPledgeClass(e.target.value)} required />
+        </div>
+        <p className="note-text">
+          Creates their profile and sends an invite email. They'll set their own password when they click the link.
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button type="submit" className="btn" disabled={submitting}>
+            {submitting ? 'Sending invite...' : 'Send invite'}
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -78,7 +77,7 @@ function PendingInvites({ invites, onResend, resendingEmail, onDelete, deletingE
             <th>Name</th>
             <th>Email</th>
             <th>Pledge class</th>
-            <th></th>
+            <th><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -248,9 +247,15 @@ export default function Brothers() {
         counts.unexcused,
       ]
     })
-    const csv = [header, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
+    // Quote every cell, and neutralise spreadsheet formula injection: a
+    // name like "=HYPERLINK(...)" (full names are user-entered on /join)
+    // would otherwise execute when the CSV is opened in Excel/Sheets.
+    const escapeCell = (cell) => {
+      let text = String(cell ?? '')
+      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
+      return `"${text.replace(/"/g, '""')}"`
+    }
+    const csv = [header, ...rows].map((row) => row.map(escapeCell).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -260,7 +265,7 @@ export default function Brothers() {
     URL.revokeObjectURL(url)
   }
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   const lowerCount = members.filter((m) => thresholdByMember[m.id] === 'approved').length
   const suspendedCount = members.filter((m) => m.status === 'suspended').length
@@ -275,7 +280,7 @@ export default function Brothers() {
           </p>
         </div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       <PendingInvites
         invites={pendingInvites}
@@ -287,19 +292,20 @@ export default function Brothers() {
 
       <div className="toolbar">
         <input
-          type="text"
+          type="search"
+          aria-label="Search brothers"
           placeholder="Search by name or pledge class"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ minWidth: '220px' }}
         />
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select aria-label="Filter by role" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="all">All roles</option>
           {ROLES.map((r) => (
             <option key={r} value={r}>{r}</option>
           ))}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">All statuses</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s}</option>
@@ -310,8 +316,10 @@ export default function Brothers() {
         <button
           className="btn secondary"
           onClick={() => {
-            navigator.clipboard.writeText(JOIN_LINK)
-            toast.success('Join link copied — send it to the group.')
+            navigator.clipboard
+              .writeText(JOIN_LINK)
+              .then(() => toast.success('Join link copied — send it to the group.'))
+              .catch(() => toast.error(`Could not copy automatically — the link is ${JOIN_LINK}`))
           }}
         >
           Copy join link
@@ -331,7 +339,7 @@ export default function Brothers() {
                 <th>Status</th>
                 <th>Threshold</th>
                 <th>Absences</th>
-                <th></th>
+                <th><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>

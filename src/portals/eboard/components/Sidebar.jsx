@@ -103,7 +103,7 @@ export default function Sidebar({ profile, badges = {} }) {
   const visibleSections = isCommitteeHead ? committeeHeadSections : sections
 
   return (
-    <nav className="sidebar">
+    <nav className="sidebar" aria-label="Main navigation">
       <div className="sidebar-header">
         <div className="sidebar-title">Beta Omicron</div>
         <div className="sidebar-subtitle">E-Board portal</div>
@@ -124,7 +124,7 @@ export default function Sidebar({ profile, badges = {} }) {
                 >
                   {icons[link.icon]}
                   <span>{link.label}</span>
-                  {!!count && <span className="sidebar-badge">{count}</span>}
+                  {!!count && <span className="sidebar-badge" aria-label={`${count} pending`}>{count}</span>}
                 </NavLink>
               )
             })}

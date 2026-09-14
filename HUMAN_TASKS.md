@@ -39,6 +39,26 @@ click-by-click steps in `DEPLOY.md` section 2 (create a Google Cloud
 service account, share the target spreadsheet with it, feed the two values
 back into a `sam deploy --parameter-overrides` call).
 
+## 2b. Supabase Auth URL settings + email templates (invite flow)
+
+The "invite link logs people in with no password" bug is a dashboard
+configuration issue, not (only) code — see `DEPLOY.md` section 4.
+
+- [ ] Add `https://brother.wsuakpsi.com/set-password` and
+      `…/reset-password` to **Authentication → URL Configuration → Redirect
+      URLs** (and set Site URL to the brother portal).
+- [ ] Switch the **Invite user** and **Reset password** email templates to
+      the `token_hash` links in `DEPLOY.md` 4b so link pre-fetchers can't
+      burn the one-time token.
+- [ ] Raise **Email OTP expiration** to 24h.
+- [ ] Send yourself a test invite from the Brothers page and confirm: link →
+      set password → straight into the portal → sign out → sign back in with
+      that password on another browser.
+- [ ] Once that works, remove the `/join` page (`src/pages/Join.jsx`, the
+      `isJoin` branch in `src/App.jsx`, the "Copy join link" button in
+      `src/portals/eboard/pages/Brothers.jsx`, and migration 0020's
+      `pending_invites_insert_self` policy).
+
 ## 3. Create real test accounts (Claude will never do this step)
 
 Claude does not create accounts or enter passwords into any login form —

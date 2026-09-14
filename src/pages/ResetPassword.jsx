@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import { initialAuthUrl, clearAuthParamsFromUrl } from '../lib/authUrl'
 import './Login.css'
 
 function CrestIcon() {
@@ -58,19 +59,22 @@ function describeLinkError(code) {
 }
 
 export default function ResetPassword({ onDone }) {
+  // token_hash-style link (see DEPLOY.md email template note): no session
+  // yet, we exchange the token on submit so link pre-fetchers can't burn it.
+  const tokenHash = initialAuthUrl.type === 'recovery' ? initialAuthUrl.tokenHash : null
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(Boolean(tokenHash))
   const [linkError, setLinkError] = useState(() => {
     const urlError = getAuthUrlError()
     return urlError ? describeLinkError(urlError.code) : null
   })
 
   useEffect(() => {
-    if (linkError) return // URL already told us this link is bad — no need to wait
+    if (linkError || tokenHash) return // URL already told us this link is bad, or nothing to wait for
 
     let settled = false
 
@@ -99,7 +103,7 @@ export default function ResetPassword({ onDone }) {
       listener.subscription.unsubscribe()
       clearTimeout(timeout)
     }
-  }, [linkError])
+  }, [linkError, tokenHash])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -115,6 +119,15 @@ export default function ResetPassword({ onDone }) {
     }
 
     setLoading(true)
+    if (tokenHash) {
+      const { error: verifyError } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash })
+      if (verifyError) {
+        setLoading(false)
+        const code = verifyError.code || (/expired/i.test(verifyError.message) ? 'otp_expired' : 'access_denied')
+        setLinkError(describeLinkError(code))
+        return
+      }
+    }
     const { error: updateError } = await supabase.auth.updateUser({ password })
     setLoading(false)
 
@@ -133,6 +146,7 @@ export default function ResetPassword({ onDone }) {
       toast.error(updateError.message)
     } else {
       toast.success('Password saved!')
+      clearAuthParamsFromUrl('/')
       if (onDone) {
         onDone()
       } else {
@@ -184,7 +198,7 @@ export default function ResetPassword({ onDone }) {
             </>
           ) : !ready ? (
             <>
-              <h1 className="login-card-title">Verifying link…</h1>
+              <h1 className="login-card-title" role="status" aria-live="polite">Verifying link…</h1>
               <p className="login-card-sub">Please wait while we verify your reset link.</p>
             </>
           ) : (
@@ -202,6 +216,7 @@ export default function ResetPassword({ onDone }) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     autoComplete="new-password"
+                    minLength={8}
                     required
                   />
                 </div>
@@ -219,7 +234,7 @@ export default function ResetPassword({ onDone }) {
                   />
                 </div>
 
-                {error && <div className="login-error">{error}</div>}
+                {error && <div className="login-error" role="alert">{error}</div>}
 
                 <button type="submit" className="login-btn" disabled={loading}>
                   <span className="login-btn-inner">

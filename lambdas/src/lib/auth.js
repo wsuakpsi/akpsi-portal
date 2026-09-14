@@ -68,11 +68,3 @@ export async function requireEventManagerCaller(event) {
   }
   return member;
 }
-
-// Manual check-in on the event detail page: a Committee Head checking in
-// someone else, same as E-Board today.
-export async function requireSelfOrEventManagerCaller(event, subjectMemberId) {
-  const member = await requireCaller(event);
-  if (member.role === 'eboard' || member.role === 'committee_head' || member.id === subjectMemberId) return member;
-  throw new AuthError(403, 'Not authorized for this member');
-}

@@ -51,7 +51,7 @@ export default function SheetsSync() {
           </p>
         </div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="sync-grid">
         <div className="sync-tile">

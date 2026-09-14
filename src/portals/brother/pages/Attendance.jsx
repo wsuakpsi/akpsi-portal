@@ -142,12 +142,15 @@ export default function Attendance({ profile }) {
         <div className="topbar-title">Attendance</div>
       </Topbar>
       <div className="page">
-      {loading && <p className="empty-state">Loading...</p>}
-      {error && <p className="error-text">{error}</p>}
+      {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       {!loading && (
-      <div className="tabs">
+      <div className="tabs" role="tablist" aria-label="Attendance type">
         <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'events'}
           className={`tab ${tab === 'events' ? 'active' : ''}`}
           onClick={() => {
             setTab('events')
@@ -157,6 +160,9 @@ export default function Attendance({ profile }) {
           Events
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'meetings'}
           className={`tab ${tab === 'meetings' ? 'active' : ''}`}
           onClick={() => {
             setTab('meetings')

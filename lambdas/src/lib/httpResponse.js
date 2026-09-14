@@ -3,7 +3,6 @@ import {
   requireEboardCaller,
   requireSelfOrEboardCaller,
   requireEventManagerCaller,
-  requireSelfOrEventManagerCaller,
 } from './auth.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -38,8 +37,10 @@ function makeHandler(authenticate, coreFn, extractArgs) {
       return respond(result.success ? 200 : 400, result);
     } catch (err) {
       if (err instanceof AuthError) return respond(err.statusCode, { success: false, error: err.message });
+      // Log the real error for CloudWatch, but never echo internal messages
+      // (DB errors, stack details, env-var names) back to the browser.
       console.error(err);
-      return respond(500, { success: false, error: err.message || 'Internal error' });
+      return respond(500, { success: false, error: 'Something went wrong. Please try again.' });
     }
   };
 }
@@ -66,12 +67,4 @@ export function wrapAuthedHandler(coreFn, extractArgs, getSubjectMemberId) {
 // full parity with E-Board here (see requireEventManagerCaller).
 export function wrapEventManagerHandler(coreFn, extractArgs) {
   return makeHandler(requireEventManagerCaller, coreFn, extractArgs);
-}
-
-export function wrapSelfOrEventManagerHandler(coreFn, extractArgs, getSubjectMemberId) {
-  return makeHandler(
-    (event, payload) => requireSelfOrEventManagerCaller(event, getSubjectMemberId(payload)),
-    coreFn,
-    extractArgs,
-  );
 }

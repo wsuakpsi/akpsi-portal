@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import { initialAuthUrl } from '../lib/authUrl'
 import './Login.css'
 
 function CrestIcon() {
@@ -19,6 +20,16 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [forgotMode, setForgotMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  // An invite/reset link that Supabase rejected (expired, already used)
+  // redirects with #error=… — and if the redirect URL wasn't allow-listed it
+  // lands here on "/" rather than on the set-password page. Say so instead of
+  // showing a bare sign-in form.
+  const [linkNotice] = useState(() => {
+    if (!initialAuthUrl.errorCode) return null
+    return initialAuthUrl.errorCode === 'otp_expired'
+      ? 'That link has expired. If you already set a password, sign in below; otherwise use "Forgot password" or ask E-Board to resend your invite.'
+      : 'That link is invalid or was already used. If you already set a password, sign in below; otherwise use "Forgot password" or ask E-Board to resend your invite.'
+  })
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -108,7 +119,7 @@ export default function Login() {
                       required
                     />
                   </div>
-                  {error && <div className="login-error">{error}</div>}
+                  {error && <div className="login-error" role="alert">{error}</div>}
                   <button type="submit" className="login-btn" disabled={loading}>
                     <span className="login-btn-inner">
                       {loading && <span className="login-spinner" />}
@@ -125,6 +136,7 @@ export default function Login() {
             <>
               <h1 className="login-card-title">Sign in</h1>
               <p className="login-card-sub">Use your chapter account to continue.</p>
+              {linkNotice && <div className="login-error" role="alert" style={{ marginBottom: '1rem' }}>{linkNotice}</div>}
               <form onSubmit={handleSubmit} noValidate>
                 <div className="login-field">
                   <label htmlFor="email">Email</label>
@@ -151,7 +163,7 @@ export default function Login() {
                     required
                   />
                 </div>
-                {error && <div className="login-error">{error}</div>}
+                {error && <div className="login-error" role="alert">{error}</div>}
                 <button type="submit" className="login-btn" disabled={loading}>
                   <span className="login-btn-inner">
                     {loading && <span className="login-spinner" />}

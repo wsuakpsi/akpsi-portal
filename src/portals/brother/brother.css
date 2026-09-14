@@ -686,3 +686,61 @@ button {
   font-size: 0.95rem;
   border-radius: 10px;
 }
+
+/* ---------- Accessibility (added in UI/UX review) ---------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard focus ring — keyboard navigation only, not mouse clicks. */
+.brother-app :focus-visible {
+  outline: 2px solid #d4a537;
+  outline-offset: 2px;
+}
+
+/* Notification rows are real buttons now (keyboard reachable); keep the
+   original card look. */
+.notif-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  font: inherit;
+  color: inherit;
+}
+
+.notif-item.unread {
+  background: #fbf7ec;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install-overlay,
+  .install-sheet {
+    animation: none;
+  }
+
+  .brother-app *,
+  .brother-app *::before,
+  .brother-app *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -178,7 +178,7 @@ export default function Overview() {
     }
   }, [])
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   const totalPendingForms = pendingFormCount + lowerThresholdCount
   const lastSyncAt = localStorage.getItem(LAST_SYNC_STORAGE_KEY)
@@ -231,7 +231,7 @@ export default function Overview() {
         </div>
         <div className="semester-pill">{semester ? semester.name : 'No active semester'}</div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="stat-grid">
         <div className="stat-tile">

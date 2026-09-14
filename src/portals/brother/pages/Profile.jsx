@@ -285,7 +285,7 @@ export default function Profile({ profile }) {
         <div className="topbar-title">Profile</div>
       </Topbar>
       <div className="page">
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="card">
         <div className="list-item">
@@ -334,7 +334,7 @@ export default function Profile({ profile }) {
 
       <div className="card">
         <h2>Lower threshold application</h2>
-        {loading && <p className="empty-state">Loading...</p>}
+        {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
         {!loading && !semester && <p className="empty-state">No active semester.</p>}
         {!loading && semester && (
           <>

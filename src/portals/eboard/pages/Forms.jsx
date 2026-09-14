@@ -84,7 +84,7 @@ export default function Forms({ profile }) {
     }
   }
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   const totalPending = missingMeetingForms.length + thresholdApps.length
 
@@ -96,7 +96,7 @@ export default function Forms({ profile }) {
           <p className="page-subtitle">{totalPending} pending review</p>
         </div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       {missingMeetingForms.length > 0 && (
         <>

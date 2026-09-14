@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDateTime, toDatetimeLocalValue, EVENT_CATEGORIES } from '../lib/queries'
+import Modal from '../../../components/Modal'
 
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
@@ -32,45 +33,41 @@ function RemoveAttendanceForm({ member, onClose, onRemoved }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Remove attendance</h2>
-        <p className="note-text">{member.full_name}</p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="note">Correction note (required)</label>
-            <textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} required rows={3} />
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button type="submit" className="btn danger" disabled={submitting || !note.trim()}>
-              {submitting ? 'Removing...' : 'Remove attendance'}
-            </button>
-            <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose} labelledBy="remove-attendance-title">
+      <h2 id="remove-attendance-title">Remove attendance</h2>
+      <p className="note-text">{member.full_name}</p>
+      <form onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label htmlFor="note">Correction note (required)</label>
+          <textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} required rows={3} />
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button type="submit" className="btn danger" disabled={submitting || !note.trim()}>
+            {submitting ? 'Removing...' : 'Remove attendance'}
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
 function ConfirmModal({ title, body, confirmLabel, busy, onConfirm, onClose }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{title}</h2>
-        <p className="note-text">{body}</p>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
-            {busy ? 'Working...' : confirmLabel}
-          </button>
-          <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-        </div>
+    <Modal onClose={onClose} labelledBy="confirm-title">
+      <h2 id="confirm-title">{title}</h2>
+      <p className="note-text">{body}</p>
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+        <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
+          {busy ? 'Working...' : confirmLabel}
+        </button>
+        <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -114,66 +111,64 @@ function EditEventForm({ event, onClose, onSaved }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Edit event</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="edit-name">Name</label>
-            <input id="edit-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="form-field">
-            <label htmlFor="edit-category">Category</label>
-            <select id="edit-category" value={category} onChange={(e) => setCategory(e.target.value)}>
-              {EVENT_CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="edit-points_value">Points value</label>
-            <input
-              id="edit-points_value"
-              type="number"
-              min="0"
-              value={pointsValue}
-              onChange={(e) => setPointsValue(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="edit-location">Location</label>
-            <input id="edit-location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
-          </div>
-          <div className="form-field">
-            <label htmlFor="edit-starts_at">Starts at</label>
-            <input
-              id="edit-starts_at"
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-field checkbox">
-            <input
-              id="edit-is_required"
-              type="checkbox"
-              checked={isRequired}
-              onChange={(e) => setIsRequired(e.target.checked)}
-            />
-            <label htmlFor="edit-is_required" style={{ marginBottom: 0 }}>Required event</label>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save changes'}
-            </button>
-            <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose} labelledBy="edit-event-title">
+      <h2 id="edit-event-title">Edit event</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label htmlFor="edit-name">Name</label>
+          <input id="edit-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="edit-category">Category</label>
+          <select id="edit-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+            {EVENT_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-field">
+          <label htmlFor="edit-points_value">Points value</label>
+          <input
+            id="edit-points_value"
+            type="number"
+            min="0"
+            value={pointsValue}
+            onChange={(e) => setPointsValue(e.target.value)}
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="edit-location">Location</label>
+          <input id="edit-location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="edit-starts_at">Starts at</label>
+          <input
+            id="edit-starts_at"
+            type="datetime-local"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-field checkbox">
+          <input
+            id="edit-is_required"
+            type="checkbox"
+            checked={isRequired}
+            onChange={(e) => setIsRequired(e.target.checked)}
+          />
+          <label htmlFor="edit-is_required" style={{ marginBottom: 0 }}>Required event</label>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button type="submit" className="btn" disabled={submitting}>
+            {submitting ? 'Saving...' : 'Save changes'}
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -213,7 +208,7 @@ function CheckInQr({ eventId, eventName }) {
       <button className="btn" disabled={state === 'loading'} onClick={handleOpen}>
         {state === 'loading' ? 'Opening...' : 'Open check-in QR'}
       </button>
-      {state === 'error' && <p className="error-text">{error}</p>}
+      {state === 'error' && <p className="error-text" role="alert">{error}</p>}
     </div>
   )
 }
@@ -256,7 +251,8 @@ function ManualCheckIn({ eventId, alreadyAttendedIds, onCheckedIn }) {
     <div className="card">
       <h2>Manual check-in</h2>
       <input
-        type="text"
+        type="search"
+        aria-label="Search brother by name"
         placeholder="Search brother by name..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -364,8 +360,8 @@ export default function EventDetail() {
     await load()
   }
 
-  if (loading) return <div className="eboard-main">Loading...</div>
-  if (error) return <div className="eboard-main"><p className="error-text">{error}</p></div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (error) return <div className="eboard-main"><p className="error-text" role="alert">{error}</p></div>
   if (!event) return <div className="eboard-main">Event not found.</div>
 
   const attendedIds = new Set(attendance.map((a) => a.member_id))
@@ -416,7 +412,8 @@ export default function EventDetail() {
           <>
             <div className="toolbar">
               <input
-                type="text"
+                type="search"
+                aria-label="Search RSVPs by name"
                 placeholder="Search RSVPs by name"
                 value={rsvpSearch}
                 onChange={(e) => setRsvpSearch(e.target.value)}
@@ -447,7 +444,8 @@ export default function EventDetail() {
           <>
             <div className="toolbar">
               <input
-                type="text"
+                type="search"
+                aria-label="Search attendance by name"
                 placeholder="Search attendance by name"
                 value={attendanceSearch}
                 onChange={(e) => setAttendanceSearch(e.target.value)}
@@ -456,7 +454,7 @@ export default function EventDetail() {
             {filteredAttendance.length === 0 && <p className="empty-state">No one matches "{attendanceSearch}".</p>}
             {filteredAttendance.length > 0 && (
               <table>
-                <thead><tr><th>Name</th><th>Method</th><th></th></tr></thead>
+                <thead><tr><th>Name</th><th>Method</th><th><span className="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                   {filteredAttendance.map((a) => (
                     <tr key={a.id}>

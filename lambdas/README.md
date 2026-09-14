@@ -24,9 +24,17 @@ before running any business logic:
   reviewMissingMeetingForm, calculateEndOfSemesterStanding,
   syncToGoogleSheets) requires the token to resolve to a member with
   `role = 'eboard'`.
-- `wrapAuthedHandler` (recordAttendance, recordLateCancel) requires the
-  token to resolve to either the `member_id` the request acts on, or an
-  E-Board member acting on someone else's behalf.
+- `wrapEventManagerHandler` (completeEvent, cancelEvent,
+  generateCheckInToken, removeAttendance, and the manual-check-in
+  `recordAttendance.handler`) accepts `role = 'eboard'` or
+  `'committee_head'`. Manual check-in is deliberately officer-only — a
+  "self or officer" rule there would let any brother award themselves
+  attendance for any scheduled event with one direct POST.
+- `wrapAuthedHandler` (`recordAttendance.qrHandler`, recordLateCancel)
+  requires the token to resolve to either the `member_id` the request acts
+  on, or an E-Board member acting on someone else's behalf.
+- Unexpected errors return a generic message to the client; the real error
+  is logged to CloudWatch (`console.error`) so internals never leak.
 - Any "who did this" field (`createdBy`, `reviewedBy`) is taken from the
   verified caller, never from the request body — the client can't claim to
   be someone else.

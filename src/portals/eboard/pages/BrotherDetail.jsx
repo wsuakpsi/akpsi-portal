@@ -552,8 +552,8 @@ export default function BrotherDetail({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  if (loading) return <div className="eboard-main">Loading...</div>
-  if (error) return <div className="eboard-main"><p className="error-text">{error}</p></div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (error) return <div className="eboard-main"><p className="error-text" role="alert">{error}</p></div>
   if (!member) return <div className="eboard-main">Brother not found.</div>
 
   const thresholdType = thresholdApp?.status === 'approved' ? 'lower' : 'standard'

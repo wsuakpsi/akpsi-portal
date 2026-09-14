@@ -165,3 +165,71 @@ breaks back here (or to a fresh Claude Code session with `HANDOFF.md` and
 this file as context) and it can get fixed fast — nothing in this app has
 been exercised against a real session before, so the first pass is where
 real bugs will surface.
+
+
+---
+
+## 4. Supabase Auth — invite / password-reset links
+
+The invite flow (E-Board "Invite brother" → email → set password → signed
+in) depends on two dashboard settings that are **not** in this repo. If
+either is wrong, brothers get logged in with no password and have to use
+"Forgot password" to recover.
+
+### 4a. Redirect URL allow-list (required)
+
+Supabase only honours the `redirectTo` an invite/reset asks for if that
+exact URL is on the allow-list; otherwise it silently redirects to the
+**Site URL** instead.
+
+**Authentication → URL Configuration:**
+
+| Setting | Value |
+|---|---|
+| Site URL | `https://brother.wsuakpsi.com` |
+| Redirect URLs | `https://brother.wsuakpsi.com/set-password`, `https://brother.wsuakpsi.com/reset-password`, `https://eboard.wsuakpsi.com/reset-password`, and the `http://localhost:5173/**` / `http://localhost:5180/**` equivalents for local dev |
+
+(The app now also recognises an invite from the `type=invite` payload in
+the URL, so a brother who lands on `/` still gets the set-password page —
+but the allow-list is still the right fix, and it's what makes password
+reset land on the right page.)
+
+### 4b. Email templates (recommended — prefetch-proof links)
+
+Default Supabase links point at `…/auth/v1/verify?token=…`, which is a
+one-time link that gets consumed by whoever fetches it first. Corporate
+mail scanners and some mobile clients pre-fetch links, so brothers see
+"link expired / already used" on their very first click. The fix is to link
+to our own page and only exchange the token when they press the button.
+
+**Authentication → Email Templates → Invite user**, set the link to:
+
+```
+https://brother.wsuakpsi.com/set-password#token_hash={{ .TokenHash }}&type=invite
+```
+
+**Reset password** template, set the link to:
+
+```
+{{ .SiteURL }}/reset-password#token_hash={{ .TokenHash }}&type=recovery
+```
+
+Notes:
+
+- The `#` (fragment) form is deliberate: S3/CloudFront 301-redirects
+  `/set-password` → `/set-password/` and a query string can be dropped on
+  that hop, but fragments always survive. The app accepts either form.
+- With these templates the `redirectTo` passed by the Lambda / login page is
+  no longer used, so 4a matters less — keep it anyway.
+- Invite links expire after the "Email OTP expiration" in
+  **Authentication → Providers → Email** (default 1 hour — raise it to
+  24h, the max, so invites sent in the evening still work next morning).
+
+### 4c. What the brother sees
+
+1. Clicks the invite link → lands on **Set your password** (no "Verifying…"
+   wait with the 4b template).
+2. Enters a password → immediately signed in and taken to the portal.
+3. On any other device, signs in with email + that password. "Forgot
+   password" on the sign-in page sends a reset link (4b template) that works
+   the same way.

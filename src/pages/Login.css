@@ -294,3 +294,27 @@
   .login-form-panel { padding: 2.5rem; }
   .login-card { max-width: 400px; }
 }
+
+/* ---------- Accessibility (added in UI/UX review) ---------- */
+
+/* Buttons/links get a visible keyboard focus ring; inputs already show a
+   focus style via box-shadow above. */
+.login-root button:focus-visible,
+.login-root a:focus-visible {
+  outline: 2px solid #d4a537;
+  outline-offset: 2px;
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-root *,
+  .login-root *::before,
+  .login-root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

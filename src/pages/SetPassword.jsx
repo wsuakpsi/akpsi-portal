@@ -1,30 +1,16 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import { initialAuthUrl, clearAuthParamsFromUrl } from '../lib/authUrl'
 import './Login.css'
 
 function CrestIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
       <path d="M9 12l2 2 4-4"/>
     </svg>
   )
-}
-
-// Supabase redirects back with the error in the URL hash (#error=...) or,
-// occasionally, the query string (?error=...) — check both.
-function getAuthUrlError() {
-  const params = new URLSearchParams(
-    window.location.hash ? window.location.hash.slice(1) : window.location.search
-  )
-  const code = params.get('error_code') || params.get('error')
-  if (!code) return null
-  const description = params.get('error_description')
-  return {
-    code,
-    description: description ? description.replace(/\+/g, ' ') : null,
-  }
 }
 
 // Map known failure cases to plain-language copy and a concrete next step.
@@ -57,22 +43,33 @@ function describeLinkError(code) {
   }
 }
 
-// Invite links land the user in an authenticated session via a plain
-// SIGNED_IN event (not PASSWORD_RECOVERY — that's only for "forgot password"
-// links), so we watch for either to know the token was verified.
+// Two ways a brother can arrive here:
+//
+// 1. token_hash link (recommended email template — see DEPLOY.md). The URL
+//    carries `token_hash` + `type=invite` and NO session yet. We show the
+//    form immediately and only exchange the token when they submit, so an
+//    email client that pre-fetches links (Outlook Safe Links, Gmail image
+//    proxies, corporate scanners) can't burn the one-time token before the
+//    brother ever sees the page.
+//
+// 2. Classic Supabase redirect. Supabase has already verified the token and
+//    redirected here with a session in the URL hash; supabase-js picks it
+//    up and fires SIGNED_IN (not PASSWORD_RECOVERY — that's only for
+//    "forgot password" links), so we wait for either event / an existing
+//    session before showing the form.
 export default function SetPassword({ onDone }) {
+  const tokenHash = initialAuthUrl.type === 'invite' ? initialAuthUrl.tokenHash : null
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [ready, setReady] = useState(false)
-  const [linkError, setLinkError] = useState(() => {
-    const urlError = getAuthUrlError()
-    return urlError ? describeLinkError(urlError.code) : null
-  })
+  const [ready, setReady] = useState(Boolean(tokenHash))
+  const [linkError, setLinkError] = useState(() =>
+    initialAuthUrl.errorCode ? describeLinkError(initialAuthUrl.errorCode) : null
+  )
 
   useEffect(() => {
-    if (linkError) return // URL already told us this link is bad — no need to wait
+    if (linkError || tokenHash) return // nothing to wait for
 
     let settled = false
 
@@ -85,9 +82,13 @@ export default function SetPassword({ onDone }) {
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
-        settled = true
-        setReady(true)
+      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY' || event === 'INITIAL_SESSION') {
+        supabase.auth.getSession().then(({ data }) => {
+          if (data.session) {
+            settled = true
+            setReady(true)
+          }
+        })
       }
     })
 
@@ -101,7 +102,7 @@ export default function SetPassword({ onDone }) {
       listener.subscription.unsubscribe()
       clearTimeout(timeout)
     }
-  }, [linkError])
+  }, [linkError, tokenHash])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -117,6 +118,18 @@ export default function SetPassword({ onDone }) {
     }
 
     setLoading(true)
+
+    // token_hash flow: exchange the one-time token for a session first.
+    if (tokenHash) {
+      const { error: verifyError } = await supabase.auth.verifyOtp({ type: 'invite', token_hash: tokenHash })
+      if (verifyError) {
+        setLoading(false)
+        const code = verifyError.code || (/expired/i.test(verifyError.message) ? 'otp_expired' : 'access_denied')
+        setLinkError(describeLinkError(code))
+        return
+      }
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({ password })
     setLoading(false)
 
@@ -134,7 +147,8 @@ export default function SetPassword({ onDone }) {
       setError(updateError.message)
       toast.error(updateError.message)
     } else {
-      toast.success('Password saved!')
+      toast.success('Password saved — welcome!')
+      clearAuthParamsFromUrl('/')
       if (onDone) {
         onDone()
       } else {
@@ -167,7 +181,7 @@ export default function SetPassword({ onDone }) {
             <>
               <h1 className="login-card-title">{linkError.title}</h1>
               <p className="login-card-sub">{linkError.message}</p>
-              <div className="login-error" style={{ marginBottom: '1rem' }}>
+              <div className="login-error" role="alert" style={{ marginBottom: '1rem' }}>
                 Already set a password before? <a href="/">Sign in</a>, then use "Forgot password" to get a fresh link.
                 <br />
                 Never set one, or your invite still doesn't work? Ask an E-Board member to resend your invite.
@@ -178,13 +192,15 @@ export default function SetPassword({ onDone }) {
             </>
           ) : !ready ? (
             <>
-              <h1 className="login-card-title">Verifying link…</h1>
+              <h1 className="login-card-title" role="status" aria-live="polite">Verifying link…</h1>
               <p className="login-card-sub">Please wait while we verify your invite link.</p>
             </>
           ) : (
             <>
               <h1 className="login-card-title">Set your password</h1>
-              <p className="login-card-sub">Choose a password to activate your chapter account.</p>
+              <p className="login-card-sub">
+                Choose a password to activate your chapter account. You'll use it to sign in on any device from now on.
+              </p>
 
               <form onSubmit={handleSubmit} noValidate>
                 <div className="login-field">
@@ -196,7 +212,9 @@ export default function SetPassword({ onDone }) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     autoComplete="new-password"
+                    minLength={8}
                     required
+                    autoFocus
                   />
                 </div>
 
@@ -209,16 +227,17 @@ export default function SetPassword({ onDone }) {
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Re-enter password"
                     autoComplete="new-password"
+                    minLength={8}
                     required
                   />
                 </div>
 
-                {error && <div className="login-error">{error}</div>}
+                {error && <div className="login-error" role="alert">{error}</div>}
 
                 <button type="submit" className="login-btn" disabled={loading}>
                   <span className="login-btn-inner">
                     {loading && <span className="login-spinner" />}
-                    {loading ? 'Saving…' : 'Set password'}
+                    {loading ? 'Saving…' : 'Set password & sign in'}
                   </span>
                 </button>
               </form>

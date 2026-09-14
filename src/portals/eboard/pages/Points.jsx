@@ -166,7 +166,7 @@ export default function Points() {
     }
   }
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   const filteredRows = rows.filter((row) => row.name.toLowerCase().includes(search.trim().toLowerCase()))
 
@@ -180,7 +180,7 @@ export default function Points() {
           </p>
         </div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       {!semester && <p className="empty-state">No active semester configured.</p>}
 
@@ -188,7 +188,8 @@ export default function Points() {
         <>
           <div className="toolbar">
             <input
-              type="text"
+              type="search"
+              aria-label="Search by name"
               placeholder="Search by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

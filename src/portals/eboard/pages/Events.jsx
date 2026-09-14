@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, EVENT_CATEGORIES } from '../lib/queries'
+import Modal from '../../../components/Modal'
 
 const CATEGORIES = EVENT_CATEGORIES
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
@@ -12,20 +13,18 @@ const ADD_TO_CALENDAR_URL = import.meta.env.VITE_ADD_TO_CALENDAR_URL
 
 function ConfirmModal({ title, body, confirmLabel, busy, onConfirm, onClose }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{title}</h2>
-        <p className="note-text">{body}</p>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
-            {busy ? 'Working...' : confirmLabel}
-          </button>
-          <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-        </div>
+    <Modal onClose={onClose} labelledBy="confirm-title">
+      <h2 id="confirm-title">{title}</h2>
+      <p className="note-text">{body}</p>
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+        <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
+          {busy ? 'Working...' : confirmLabel}
+        </button>
+        <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -91,77 +90,75 @@ function AddEventForm({ semester, onClose, onAdded }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Add event</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="name">Name</label>
-            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="form-field">
-            <label htmlFor="category">Category</label>
-            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="points_value">Points value</label>
-            <input
-              id="points_value"
-              type="number"
-              min="0"
-              value={pointsValue}
-              onChange={(e) => setPointsValue(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="location">Location</label>
-            <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
-          </div>
-          <div className="form-field">
-            <label htmlFor="starts_at">Starts at</label>
-            <input
-              id="starts_at"
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="duration">Duration (minutes)</label>
-            <input
-              id="duration"
-              type="number"
-              min="15"
-              step="15"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-            />
-          </div>
-          <div className="form-field checkbox">
-            <input
-              id="is_required"
-              type="checkbox"
-              checked={isRequired}
-              onChange={(e) => setIsRequired(e.target.checked)}
-            />
-            <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? 'Adding...' : 'Add event'}
-            </button>
-            <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose} labelledBy="add-event-title">
+      <h2 id="add-event-title">Add event</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label htmlFor="name">Name</label>
+          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="category">Category</label>
+          <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-field">
+          <label htmlFor="points_value">Points value</label>
+          <input
+            id="points_value"
+            type="number"
+            min="0"
+            value={pointsValue}
+            onChange={(e) => setPointsValue(e.target.value)}
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="location">Location</label>
+          <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="starts_at">Starts at</label>
+          <input
+            id="starts_at"
+            type="datetime-local"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="duration">Duration (minutes)</label>
+          <input
+            id="duration"
+            type="number"
+            min="15"
+            step="15"
+            value={durationMinutes}
+            onChange={(e) => setDurationMinutes(e.target.value)}
+          />
+        </div>
+        <div className="form-field checkbox">
+          <input
+            id="is_required"
+            type="checkbox"
+            checked={isRequired}
+            onChange={(e) => setIsRequired(e.target.checked)}
+          />
+          <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button type="submit" className="btn" disabled={submitting}>
+            {submitting ? 'Adding...' : 'Add event'}
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -283,7 +280,7 @@ export default function Events() {
     })
   }, [events, showPast, searchName, dateFrom, dateTo])
 
-  if (loading) return <div className="eboard-main">Loading...</div>
+  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
 
   const upcoming = filteredEvents.filter((e) => e.status === 'scheduled')
   const completed = filteredEvents.filter((e) => e.status === 'completed')
@@ -358,7 +355,7 @@ export default function Events() {
           </p>
         </div>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
 
       {!semester && <p className="empty-state">No active semester configured.</p>}
 
@@ -366,7 +363,8 @@ export default function Events() {
         <>
           <div className="toolbar">
             <input
-              type="text"
+              type="search"
+              aria-label="Search events"
               placeholder="Search events"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
