@@ -4,7 +4,7 @@ import QRCode from 'qrcode'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { formatDateTime, toDatetimeLocalValue, EVENT_CATEGORIES } from '../lib/queries'
+import { formatDateTime, toDatetimeLocalValue, EVENT_CATEGORIES, completionSummary } from '../lib/queries'
 import Modal from '../../../components/Modal'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
@@ -326,8 +326,8 @@ export default function EventDetail() {
   async function handleMarkComplete() {
     setBusy(true)
     try {
-      await callLambda(COMPLETE_EVENT_URL, { eventId: id })
-      toast.success('Event marked complete.')
+      const result = await callLambda(COMPLETE_EVENT_URL, { eventId: id })
+      toast.success(completionSummary('Event marked complete.', result))
       setShowCompleteConfirm(false)
       await load()
     } catch (err) {

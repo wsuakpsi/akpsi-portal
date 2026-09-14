@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester, EVENT_CATEGORIES } from '../lib/queries'
+import { getActiveSemester, EVENT_CATEGORIES, completionSummary } from '../lib/queries'
 import Modal from '../../../components/Modal'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
@@ -233,8 +233,8 @@ export default function Events() {
   async function handleMarkComplete(event) {
     setBusyEventId(event.id)
     try {
-      await callLambda(COMPLETE_EVENT_URL, { eventId: event.id })
-      toast.success(`${event.name} marked complete.`)
+      const result = await callLambda(COMPLETE_EVENT_URL, { eventId: event.id })
+      toast.success(completionSummary(`${event.name} marked complete.`, result))
       setCompleteTarget(null)
       await load()
     } catch (err) {

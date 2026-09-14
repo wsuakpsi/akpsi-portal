@@ -59,3 +59,14 @@ export async function getSidebarBadgeCounts() {
     forms: (mmfRes.count || 0) + (ltaRes.count || 0),
   }
 }
+
+// Turns a completeEvent Lambda result into a one-line summary for the toast,
+// e.g. "Marked complete. 58 present, 20 unexcused, 2 excused."
+export function completionSummary(prefix, result) {
+  if (!result) return prefix
+  if (result.meetingSweep) {
+    const { unexcused = 0, excused = 0 } = result.meetingSweep
+    return `${prefix} ${result.attended ?? 0} present, ${unexcused} unexcused, ${excused} excused.`
+  }
+  return `${prefix} ${result.attended ?? 0} attended, ${result.noShows ?? 0} no-show${result.noShows === 1 ? '' : 's'}.`
+}

@@ -31,11 +31,53 @@ export async function completeEvent(eventId) {
     .eq('event_id', eventId);
   if (attendanceError) return { success: false, error: attendanceError.message };
 
+  // Meetings: roll-call sweep. Check-in only ever writes 'present' rows and
+  // form approval only writes 'excused' rows, so a brother who simply didn't
+  // show up had NO meeting_attendance row at all — and every absence count
+  // (Attendance page, Brothers page, Overview flags, Sheets export) counts
+  // rows, so they were invisible instead of unexcused. Fill the gap now:
+  // every active/probation member with no row gets 'unexcused', or 'excused'
+  // if an approved missing-meeting form already covers them. Existing rows
+  // are never touched (ignoreDuplicates), so present/excused stay as-is.
+  let meetingSweep = { unexcused: 0, excused: 0 };
+  if (eventRow.category === 'meeting') {
+    const [{ data: members, error: membersError }, { data: existingRows, error: existingError }, { data: approvedForms, error: formsError }] =
+      await Promise.all([
+        supabase.from('members').select('id').in('status', ['active', 'probation']),
+        supabase.from('meeting_attendance').select('member_id').eq('event_id', eventId),
+        supabase.from('missing_meeting_forms').select('member_id').eq('event_id', eventId).eq('status', 'approved'),
+      ]);
+    if (membersError) return { success: false, error: membersError.message };
+    if (existingError) return { success: false, error: existingError.message };
+    if (formsError) return { success: false, error: formsError.message };
+
+    const hasRow = new Set(existingRows.map((r) => r.member_id));
+    const excusedIds = new Set(approvedForms.map((f) => f.member_id));
+    const rowsToInsert = members
+      .filter((m) => !hasRow.has(m.id))
+      .map((m) => ({
+        event_id: eventId,
+        member_id: m.id,
+        status: excusedIds.has(m.id) ? 'excused' : 'unexcused',
+      }));
+
+    if (rowsToInsert.length > 0) {
+      const { error: sweepError } = await supabase
+        .from('meeting_attendance')
+        .upsert(rowsToInsert, { onConflict: 'event_id,member_id', ignoreDuplicates: true });
+      if (sweepError) return { success: false, error: sweepError.message };
+    }
+    meetingSweep = {
+      unexcused: rowsToInsert.filter((r) => r.status === 'unexcused').length,
+      excused: rowsToInsert.filter((r) => r.status === 'excused').length,
+    };
+  }
+
   // No-show sweep: anyone still 'going' with no attendance row missed the
   // event without cancelling. Meetings never use rsvps (attendance is
-  // tracked separately via meeting_attendance), so this is naturally a
-  // no-op for them, but the category check keeps that explicit rather than
-  // incidental — meetings must never carry a point impact either way.
+  // tracked separately via meeting_attendance, swept above), so this is
+  // naturally a no-op for them, but the category check keeps that explicit
+  // rather than incidental — meetings must never carry a point impact either way.
   let noShows = [];
   if (eventRow.category !== 'meeting') {
     const attendedIds = new Set(attendanceRows.map((r) => r.member_id));
@@ -102,7 +144,7 @@ export async function completeEvent(eventId) {
     if (notifError) return { success: false, error: notifError.message };
   }
 
-  return { success: true, noShows: noShows.length, attended: attendanceRows.length };
+  return { success: true, noShows: noShows.length, attended: attendanceRows.length, meetingSweep };
 }
 
 export const handler = wrapEventManagerHandler(completeEvent, (payload) => [payload.eventId]);
