@@ -109,6 +109,7 @@ export default function Sidebar({ profile, badges = {} }) {
         <div className="sidebar-subtitle">E-Board portal</div>
       </div>
 
+      <div className="sidebar-sections">
       {visibleSections.map((section) => (
         <div className="sidebar-section" key={section.label}>
           <div className="sidebar-section-label">{section.label}</div>
@@ -131,6 +132,7 @@ export default function Sidebar({ profile, badges = {} }) {
           </div>
         </div>
       ))}
+      </div>
 
       <div className="sidebar-footer">
         <div className="sidebar-avatar">{initials(profile.full_name)}</div>
