@@ -20,11 +20,11 @@ before running any business logic:
 - Callers must send `Authorization: Bearer <supabase_access_token>` — the
   same access token the frontend already holds from `supabase.auth
   .getSession()`. There is no separate API key.
-- `wrapEboardHandler` (completeEvent, cancelEvent, postManualPointAdjustment,
-  reviewMissingMeetingForm, calculateEndOfSemesterStanding,
-  syncToGoogleSheets) requires the token to resolve to a member with
+- `wrapEboardHandler` (postManualPointAdjustment, reviewMissingMeetingForm,
+  calculateEndOfSemesterStanding, syncToGoogleSheets, createSemester,
+  inviteBrother) requires the token to resolve to a member with
   `role = 'eboard'`.
-- `wrapEventManagerHandler` (completeEvent, cancelEvent,
+- `wrapEventManagerHandler` (completeEvent, cancelEvent, addEventToCalendar,
   generateCheckInToken, removeAttendance, and the manual-check-in
   `recordAttendance.handler`) accepts `role = 'eboard'` or
   `'committee_head'`. Manual check-in is deliberately officer-only — a
@@ -65,9 +65,9 @@ before running any business logic:
 - **No-show penalty category**: inherits the event's own `category`, so a
   no-show on a Professional event dings the Professional bucket — same
   category the member was trying to earn points in.
-- **`postManualPointAdjustment`**: has no `category` param.
-  `points_ledger.category` is hardcoded to `'adjustment'`; the `note` field
-  carries the officer's explanation.
+- **`postManualPointAdjustment`**: takes an optional `category` (defaults
+  to `'adjustment'`) so an officer can credit a specific standing bucket;
+  the `note` field carries the officer's explanation.
 - **`calculateEndOfSemesterStanding` "active member"**: only
   `status IN ('active', 'probation')` is evaluated. Suspended members are
   skipped entirely — that status is sticky until an E-Board member manually
@@ -82,10 +82,8 @@ before running any business logic:
   an `Archive` tab — `calculateEndOfSemesterStanding` does this once it
   locks results, per spec 14.2. Plain on-demand/nightly syncs don't archive.
 - **Nightly sync**: `nightlySheetsSync.js` is a separate, unauthenticated
-  entrypoint meant for an EventBridge schedule (see
-  `infra/nightly-sheets-sync.template.yaml`) — it isn't deployed by
-  anything in this repo, the template is a reference to wire into whatever
-  stack deploys the other Lambdas, against the chapter's own AWS account.
+  entrypoint on an EventBridge schedule (`NightlySheetsSyncFunction` in
+  `template.yaml`, gated by the `EnableNightlySync` parameter).
 - **No-show sweep**: lives inside `completeEvent`, not a separate function —
   it flips any `rsvps.status = 'going'` row with no matching `attendance`
   row to `no_show` right before the penalty pass, so there's one atomic
@@ -119,15 +117,15 @@ before running any business logic:
 ## Deploying
 
 `template.yaml` in this directory is a ready-to-use AWS SAM template
-covering all 9 API Gateway-fronted functions (including `recordAttendance`'s
+covering all 14 API Gateway-fronted functions (including `recordAttendance`'s
 two separate routes for its `handler`/`qrHandler` exports) behind one
 shared HTTP API, plus the nightly Sheets sync cron gated behind an
 `EnableNightlySync` parameter. It doesn't bundle per-function (no esbuild
-tree-shaking) — every function ships with the full `node_modules`,
-including `googleapis` even though only `syncToGoogleSheets` needs it.
-That's a deliberate simplicity-over-package-size tradeoff for a small
-chapter deployment; revisit with per-function esbuild bundling if package
-size ever becomes a real problem.
+tree-shaking) — every function ships with the full `node_modules`. The
+Google dependencies are the scoped `@googleapis/sheets` and
+`@googleapis/calendar` packages rather than the monolithic `googleapis`,
+which keeps that footprint small; revisit with per-function esbuild
+bundling if package size ever becomes a real problem.
 
 Step-by-step deploy instructions (including exactly what to enter for
 `sam deploy --guided`'s prompts) are in `../DEPLOY.md`, not here — that

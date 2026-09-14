@@ -7,3 +7,6 @@ lambdas/*.json
 lambdas/.aws-sam/
 **/service-account.json
 supabase/.temp
+
+# Local installers (AWSCLIV2.pkg was committed by accident)
+*.pkg

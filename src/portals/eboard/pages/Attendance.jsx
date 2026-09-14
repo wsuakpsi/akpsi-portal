@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
-import { getActiveSemester, formatDateTime } from '../lib/queries'
+import { getActiveSemester, formatDateTime, initials } from '../lib/queries'
 import Modal from '../../../components/Modal'
 import { EboardPageSkeleton, SkeletonTable } from '../../../components/Skeleton'
 
@@ -168,7 +168,7 @@ export default function Attendance() {
                     <tr key={row.id}>
                       <td>
                         <div className="member-cell">
-                          <div className="avatar">{(row.members?.full_name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                          <div className="avatar">{initials(row.members?.full_name)}</div>
                           <div className="member-name">{row.members?.full_name || '-'}</div>
                         </div>
                       </td>

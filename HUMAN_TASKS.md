@@ -5,7 +5,7 @@ real-device/browser testing are all things Claude won't do (see the "why" notes)
 Cross-reference with `HANDOFF.md` for the full technical writeup of what's been built.
 
 **→ For exact step-by-step commands for sections 1-3, see [`DEPLOY.md`](DEPLOY.md).**
-It has a ready-to-use SAM template (`lambdas/template.yaml`) covering all 9
+It has a ready-to-use SAM template (`lambdas/template.yaml`) covering all
 Lambdas + API Gateway in one deploy, plus a URL-to-env-var mapping table so
 wiring `.env.local` afterward is copy/paste, not guesswork.
 
@@ -22,7 +22,7 @@ nowhere to send its request and will fail.
       an unrelated employer/work account (see HANDOFF.md warning #2).
 - [ ] `DEPLOY.md` section 1: `sam build && sam deploy --guided` from
       `lambdas/`, using `lambdas/template.yaml` (already written — covers
-      all 9 API-facing functions behind one shared HTTP API, including
+      all API-facing functions behind one shared HTTP API, including
       `recordAttendance.js`'s two separate routes for its two handlers).
 - [ ] Fill in every `VITE_*_URL` in `.env.local` (frontend) with the real
       API Gateway URLs from the deploy output — mapping table in

@@ -80,6 +80,21 @@ The existing `notifications` table rows are already being inserted by Lambdas on
 
 ---
 
+## Live-only policies (not in migrations)
+
+Three RLS policies were created by hand in the Supabase dashboard and exist
+only on the live database. `supabase db push` never touches them, but any
+fresh environment would be missing them — the first-login promotion in
+`src/lib/auth.js` depends on the first one.
+
+| Table | Policy name | cmd |
+|---|---|---|
+| `members` | users can insert their own members row on first login | INSERT — replaced by migration 0023's `members_insert_self_first_login`, which also pins role/status |
+| `pending_invites` | users can delete their own pending invite | DELETE |
+| `pending_invites` | users can read their own pending invite | SELECT (duplicates 0016's `pending_invites_select_self`) |
+
+To see their exact rules: `select policyname, cmd, qual, with_check from pg_policies where tablename in ('members','pending_invites');`
+
 ## Quick reference
 
 - **Migrations applied**: `0001`–`0012`, all confirmed live (`supabase migration list` shows matching local/remote versions)

@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { sheets as sheetsApi, auth as googleAuth } from '@googleapis/sheets';
 
 let sheetsClient;
 
@@ -15,11 +15,11 @@ export async function getSheetsClient() {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
   }
 
-  const auth = new google.auth.GoogleAuth({
+  const auth = new googleAuth.GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
-  sheetsClient = google.sheets({ version: 'v4', auth });
+  sheetsClient = sheetsApi({ version: 'v4', auth });
   return sheetsClient;
 }

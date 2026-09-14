@@ -9,6 +9,7 @@ import {
   POINT_CATEGORIES,
   STANDARD_THRESHOLDS,
   LOWER_THRESHOLDS,
+  initials,
 } from '../lib/queries'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
@@ -188,6 +189,9 @@ function ThresholdChange({ member, semester, application, reviewerId, onChanged 
           member_id: member.id,
           semester_id: semester.id,
           reason: 'Set by E-Board',
+          // proof_url is NOT NULL (migration 0004); E-Board-set rows have no
+          // upload, so use a sentinel — same convention as 0004's backfill.
+          proof_url: 'eboard:set-manually',
           status: nextStatus,
           reviewed_by: reviewerId,
           reviewed_at: now,
@@ -564,8 +568,6 @@ export default function BrotherDetail({ profile }) {
     if (POINT_CATEGORIES.includes(row.category)) categoryTotals[row.category] += row.delta
   }
 
-  const initials = member.full_name.split(' ').map((p) => p[0]).slice(0, 2).join('')
-
   return (
     <div className="eboard-main">
       <Link className="back-link" to="/eboard/brothers">&larr; Back to brothers</Link>
@@ -586,7 +588,7 @@ export default function BrotherDetail({ profile }) {
                 style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', marginBottom: '0.75rem' }}
               />
             ) : (
-              <div className="avatar lg" style={{ marginBottom: '0.75rem' }}>{initials}</div>
+              <div className="avatar lg" style={{ marginBottom: '0.75rem' }}>{initials(member.full_name)}</div>
             )}
             <h2 style={{ fontSize: '1.15rem' }}>{member.full_name}</h2>
             <div style={{ display: 'flex', gap: '0.4rem', margin: '0.5rem 0 1rem' }}>

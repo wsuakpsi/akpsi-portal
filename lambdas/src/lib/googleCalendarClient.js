@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { calendar as calendarApi, auth as googleAuth } from '@googleapis/calendar';
 
 let calendarClient;
 
@@ -15,11 +15,11 @@ export async function getCalendarClient() {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
   }
 
-  const auth = new google.auth.GoogleAuth({
+  const auth = new googleAuth.GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/calendar'],
   });
 
-  calendarClient = google.calendar({ version: 'v3', auth });
+  calendarClient = calendarApi({ version: 'v3', auth });
   return calendarClient;
 }

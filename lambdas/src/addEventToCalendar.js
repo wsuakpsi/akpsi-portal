@@ -1,5 +1,5 @@
 import { getCalendarClient } from './lib/googleCalendarClient.js';
-import { wrapEboardHandler } from './lib/httpResponse.js';
+import { wrapEventManagerHandler } from './lib/httpResponse.js';
 
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
 
@@ -47,7 +47,9 @@ export async function addEventToCalendar(name, startsAt, location, category, dur
   return { success: true, calendarEventId: data.id, calendarEventUrl: data.htmlLink };
 }
 
-export const handler = wrapEboardHandler(addEventToCalendar, (payload) => [
+// Event-manager wrapper (E-Board + Committee Head): anyone who can insert an
+// event row (migrations 0002/0019) must be able to sync it to the calendar.
+export const handler = wrapEventManagerHandler(addEventToCalendar, (payload) => [
   payload.name,
   payload.startsAt,
   payload.location,

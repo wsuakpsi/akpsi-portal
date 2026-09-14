@@ -2,16 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { initialAuthUrl, clearAuthParamsFromUrl } from '../lib/authUrl'
-import './Login.css'
-
-function CrestIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
-      <path d="M9 12l2 2 4-4"/>
-    </svg>
-  )
-}
+import AuthShell from '../components/AuthShell'
 
 // Map known failure cases to plain-language copy and a concrete next step.
 function describeLinkError(code) {
@@ -158,95 +149,73 @@ export default function SetPassword({ onDone }) {
   }
 
   return (
-    <div className="login-root">
-      <aside className="login-brand">
-        <div className="login-brand-crest"><CrestIcon /></div>
-        <div className="login-brand-name">AKΨ</div>
-        <div className="login-brand-full">Alpha Kappa Psi</div>
-        <div className="login-brand-divider" />
-        <p className="login-brand-tagline">
-          Developing principled business leaders — one brother at a time.
-        </p>
-      </aside>
+    <AuthShell>
+      {linkError ? (
+        <>
+          <h1 className="login-card-title">{linkError.title}</h1>
+          <p className="login-card-sub">{linkError.message}</p>
+          <div className="login-error" role="alert" style={{ marginBottom: '1rem' }}>
+            Already set a password before? <a href="/">Sign in</a>, then use "Forgot password" to get a fresh link.
+            <br />
+            Never set one, or your invite still doesn't work? Ask an E-Board member to resend your invite.
+          </div>
+          <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+            Back to sign in
+          </a>
+        </>
+      ) : !ready ? (
+        <>
+          <h1 className="login-card-title" role="status" aria-live="polite">Verifying link…</h1>
+          <p className="login-card-sub">Please wait while we verify your invite link.</p>
+        </>
+      ) : (
+        <>
+          <h1 className="login-card-title">Set your password</h1>
+          <p className="login-card-sub">
+            Choose a password to activate your chapter account. You'll use it to sign in on any device from now on.
+          </p>
 
-      <main className="login-form-panel">
-        <div className="login-mobile-header">
-          <div className="login-mobile-crest"><CrestIcon /></div>
-          <div className="login-mobile-name">AKΨ Portal</div>
-          <div className="login-mobile-full">Alpha Kappa Psi</div>
-        </div>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="login-field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                autoComplete="new-password"
+                minLength={8}
+                required
+                autoFocus
+              />
+            </div>
 
-        <div className="login-card">
-          {linkError ? (
-            <>
-              <h1 className="login-card-title">{linkError.title}</h1>
-              <p className="login-card-sub">{linkError.message}</p>
-              <div className="login-error" role="alert" style={{ marginBottom: '1rem' }}>
-                Already set a password before? <a href="/">Sign in</a>, then use "Forgot password" to get a fresh link.
-                <br />
-                Never set one, or your invite still doesn't work? Ask an E-Board member to resend your invite.
-              </div>
-              <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                Back to sign in
-              </a>
-            </>
-          ) : !ready ? (
-            <>
-              <h1 className="login-card-title" role="status" aria-live="polite">Verifying link…</h1>
-              <p className="login-card-sub">Please wait while we verify your invite link.</p>
-            </>
-          ) : (
-            <>
-              <h1 className="login-card-title">Set your password</h1>
-              <p className="login-card-sub">
-                Choose a password to activate your chapter account. You'll use it to sign in on any device from now on.
-              </p>
+            <div className="login-field">
+              <label htmlFor="confirm">Confirm password</label>
+              <input
+                id="confirm"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </div>
 
-              <form onSubmit={handleSubmit} noValidate>
-                <div className="login-field">
-                  <label htmlFor="password">Password</label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min. 8 characters"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                    autoFocus
-                  />
-                </div>
+            {error && <div className="login-error" role="alert">{error}</div>}
 
-                <div className="login-field">
-                  <label htmlFor="confirm">Confirm password</label>
-                  <input
-                    id="confirm"
-                    type="password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="Re-enter password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                  />
-                </div>
-
-                {error && <div className="login-error" role="alert">{error}</div>}
-
-                <button type="submit" className="login-btn" disabled={loading}>
-                  <span className="login-btn-inner">
-                    {loading && <span className="login-spinner" />}
-                    {loading ? 'Saving…' : 'Set password & sign in'}
-                  </span>
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-
-        <p className="login-footer">Alpha Kappa Psi · Chapter Portal</p>
-      </main>
-    </div>
+            <button type="submit" className="login-btn" disabled={loading}>
+              <span className="login-btn-inner">
+                {loading && <span className="login-spinner" />}
+                {loading ? 'Saving…' : 'Set password & sign in'}
+              </span>
+            </button>
+          </form>
+        </>
+      )}
+    </AuthShell>
   )
 }

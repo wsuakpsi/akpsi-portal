@@ -14,7 +14,7 @@ export async function recordLateCancel(rsvpId, expectedMemberId) {
 
   const { data: rsvp, error: rsvpError } = await supabase
     .from('rsvps')
-    .select('id, member_id, event_id, status, events ( id, semester_id, category, starts_at, name )')
+    .select('id, member_id, event_id, status, events ( id, semester_id, category, starts_at, name, status )')
     .eq('id', rsvpId)
     .maybeSingle();
   if (rsvpError) return { success: false, error: rsvpError.message };
@@ -25,6 +25,16 @@ export async function recordLateCancel(rsvpId, expectedMemberId) {
 
   const event = rsvp.events;
   if (!event) return { success: false, error: `Event for RSVP ${rsvpId} not found` };
+
+  // Idempotency guard: a replayed request (mobile network retry, double
+  // submit) must not post a second penalty on an RSVP that's already been
+  // cancelled — this happened in production, two ledger rows 2s apart.
+  if (rsvp.status !== 'going') {
+    return { success: false, error: 'This RSVP has already been cancelled' };
+  }
+  if (event.status !== 'scheduled') {
+    return { success: false, error: 'This event is no longer scheduled' };
+  }
 
   const { error: updateError } = await supabase
     .from('rsvps')

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
-import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
+import { getActiveSemester, formatDateTime, formatDate, initials } from '../lib/queries'
+import { selectAllRows } from '../../../lib/selectAll'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const LAST_SYNC_STORAGE_KEY = 'eboard.lastSheetsSyncAt'
@@ -86,6 +87,7 @@ export default function Overview() {
           supabase
             .from('events')
             .select('*')
+            .eq('semester_id', activeSemester.id)
             .eq('status', 'scheduled')
             .gt('starts_at', new Date().toISOString())
             .order('starts_at', { ascending: true })
@@ -112,11 +114,9 @@ export default function Overview() {
 
         let flagged = []
         if (meetingIds.length > 0) {
-          const { data: attendanceRows, error: attendanceError } = await supabase
-            .from('meeting_attendance')
-            .select('member_id, status, members(full_name)')
-            .in('event_id', meetingIds)
-          if (attendanceError) throw attendanceError
+          const attendanceRows = await selectAllRows((db) =>
+            db.from('meeting_attendance').select('id, member_id, status, members(full_name)').in('event_id', meetingIds)
+          )
 
           const tally = {}
           for (const row of attendanceRows || []) {
@@ -314,7 +314,7 @@ export default function Overview() {
           {flaggedMembers.map((m) => (
             <Link key={m.member_id} to={`/eboard/brothers/${m.member_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
-                <div className="avatar">{m.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                <div className="avatar">{initials(m.name)}</div>
                 <div className="list-row-body">
                   <div className="list-row-title">{m.name}</div>
                   <div className="list-row-sub">{m.excused} excused &middot; {m.unexcused} unexcused</div>

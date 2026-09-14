@@ -1,16 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
-import './Login.css'
-
-function CrestIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
-      <path d="M9 12l2 2 4-4"/>
-    </svg>
-  )
-}
+import AuthShell from '../components/AuthShell'
 
 // Self-serve join link — brothers create their own account instead of
 // waiting on an E-Board-sent invite email (which goes through Supabase's
@@ -93,122 +84,100 @@ export default function Join({ onDone }) {
   }
 
   return (
-    <div className="login-root">
-      <aside className="login-brand">
-        <div className="login-brand-crest"><CrestIcon /></div>
-        <div className="login-brand-name">AKΨ</div>
-        <div className="login-brand-full">Alpha Kappa Psi</div>
-        <div className="login-brand-divider" />
-        <p className="login-brand-tagline">
-          Developing principled business leaders — one brother at a time.
-        </p>
-      </aside>
+    <AuthShell>
+      {checkEmail ? (
+        <>
+          <h1 className="login-card-title">Check your email</h1>
+          <p className="login-card-sub">
+            We sent a confirmation link to <strong>{email}</strong>. Click it, then come back and sign in.
+          </p>
+          <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+            Back to sign in
+          </a>
+        </>
+      ) : (
+        <>
+          <h1 className="login-card-title">Join the chapter</h1>
+          <p className="login-card-sub">Create your account to get into the portal.</p>
 
-      <main className="login-form-panel">
-        <div className="login-mobile-header">
-          <div className="login-mobile-crest"><CrestIcon /></div>
-          <div className="login-mobile-name">AKΨ Portal</div>
-          <div className="login-mobile-full">Alpha Kappa Psi</div>
-        </div>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="login-field">
+              <label htmlFor="fullName">Full name</label>
+              <input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Jane Brother"
+                autoComplete="name"
+                required
+              />
+            </div>
 
-        <div className="login-card">
-          {checkEmail ? (
-            <>
-              <h1 className="login-card-title">Check your email</h1>
-              <p className="login-card-sub">
-                We sent a confirmation link to <strong>{email}</strong>. Click it, then come back and sign in.
-              </p>
-              <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                Back to sign in
-              </a>
-            </>
-          ) : (
-            <>
-              <h1 className="login-card-title">Join the chapter</h1>
-              <p className="login-card-sub">Create your account to get into the portal.</p>
+            <div className="login-field">
+              <label htmlFor="pledgeClass">Pledge class</label>
+              <input
+                id="pledgeClass"
+                type="text"
+                value={pledgeClass}
+                onChange={(e) => setPledgeClass(e.target.value)}
+                placeholder="e.g. Sigma"
+                required
+              />
+            </div>
 
-              <form onSubmit={handleSubmit} noValidate>
-                <div className="login-field">
-                  <label htmlFor="fullName">Full name</label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jane Brother"
-                    autoComplete="name"
-                    required
-                  />
-                </div>
+            <div className="login-field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                autoComplete="email"
+                autoCapitalize="none"
+                required
+              />
+            </div>
 
-                <div className="login-field">
-                  <label htmlFor="pledgeClass">Pledge class</label>
-                  <input
-                    id="pledgeClass"
-                    type="text"
-                    value={pledgeClass}
-                    onChange={(e) => setPledgeClass(e.target.value)}
-                    placeholder="e.g. Sigma"
-                    required
-                  />
-                </div>
+            <div className="login-field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </div>
 
-                <div className="login-field">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@email.com"
-                    autoComplete="email"
-                    autoCapitalize="none"
-                    required
-                  />
-                </div>
+            <div className="login-field">
+              <label htmlFor="confirm">Confirm password</label>
+              <input
+                id="confirm"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                required
+              />
+            </div>
 
-                <div className="login-field">
-                  <label htmlFor="password">Password</label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min. 8 characters"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                  />
-                </div>
+            {error && <div className="login-error" role="alert">{error}</div>}
 
-                <div className="login-field">
-                  <label htmlFor="confirm">Confirm password</label>
-                  <input
-                    id="confirm"
-                    type="password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="Re-enter password"
-                    autoComplete="new-password"
-                    required
-                  />
-                </div>
-
-                {error && <div className="login-error" role="alert">{error}</div>}
-
-                <button type="submit" className="login-btn" disabled={loading}>
-                  <span className="login-btn-inner">
-                    {loading && <span className="login-spinner" />}
-                    {loading ? 'Creating account…' : 'Join'}
-                  </span>
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-
-        <p className="login-footer">Alpha Kappa Psi · Chapter Portal</p>
-      </main>
-    </div>
+            <button type="submit" className="login-btn" disabled={loading}>
+              <span className="login-btn-inner">
+                {loading && <span className="login-spinner" />}
+                {loading ? 'Creating account…' : 'Join'}
+              </span>
+            </button>
+          </form>
+        </>
+      )}
+    </AuthShell>
   )
 }

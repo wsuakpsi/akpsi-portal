@@ -2,31 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { initialAuthUrl, clearAuthParamsFromUrl } from '../lib/authUrl'
-import './Login.css'
-
-function CrestIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
-      <path d="M9 12l2 2 4-4"/>
-    </svg>
-  )
-}
-
-// Supabase redirects back with the error in the URL hash (#error=...) or,
-// occasionally, the query string (?error=...) — check both.
-function getAuthUrlError() {
-  const params = new URLSearchParams(
-    window.location.hash ? window.location.hash.slice(1) : window.location.search
-  )
-  const code = params.get('error_code') || params.get('error')
-  if (!code) return null
-  const description = params.get('error_description')
-  return {
-    code,
-    description: description ? description.replace(/\+/g, ' ') : null,
-  }
-}
+import AuthShell from '../components/AuthShell'
 
 // Map known failure cases to plain-language copy and a concrete next step.
 function describeLinkError(code) {
@@ -66,12 +42,12 @@ export default function ResetPassword({ onDone }) {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
   const [ready, setReady] = useState(Boolean(tokenHash))
-  const [linkError, setLinkError] = useState(() => {
-    const urlError = getAuthUrlError()
-    return urlError ? describeLinkError(urlError.code) : null
-  })
+  // Read from the snapshot taken before supabase-js stripped the hash
+  // (see authUrl.js) — reading window.location here would already be empty.
+  const [linkError, setLinkError] = useState(() =>
+    initialAuthUrl.errorCode ? describeLinkError(initialAuthUrl.errorCode) : null
+  )
 
   useEffect(() => {
     if (linkError || tokenHash) return // URL already told us this link is bad, or nothing to wait for
@@ -156,99 +132,69 @@ export default function ResetPassword({ onDone }) {
   }
 
   return (
-    <div className="login-root">
-      <aside className="login-brand">
-        <div className="login-brand-crest"><CrestIcon /></div>
-        <div className="login-brand-name">AKΨ</div>
-        <div className="login-brand-full">Alpha Kappa Psi</div>
-        <div className="login-brand-divider" />
-        <p className="login-brand-tagline">
-          Developing principled business leaders — one brother at a time.
-        </p>
-      </aside>
+    <AuthShell>
+      {linkError ? (
+        <>
+          <h1 className="login-card-title">{linkError.title}</h1>
+          <p className="login-card-sub">{linkError.message}</p>
+          <div className="login-error" style={{ marginBottom: '1rem' }}>
+            Already reset your password with this link? <a href="/">Sign in</a> with it.
+            <br />
+            Still can't get in? Use "Forgot password" from the sign-in page to request a fresh link.
+          </div>
+          <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+            Back to sign in
+          </a>
+        </>
+      ) : !ready ? (
+        <>
+          <h1 className="login-card-title" role="status" aria-live="polite">Verifying link…</h1>
+          <p className="login-card-sub">Please wait while we verify your reset link.</p>
+        </>
+      ) : (
+        <>
+          <h1 className="login-card-title">Reset your password</h1>
+          <p className="login-card-sub">Enter a new password to regain access to your account.</p>
 
-      <main className="login-form-panel">
-        <div className="login-mobile-header">
-          <div className="login-mobile-crest"><CrestIcon /></div>
-          <div className="login-mobile-name">AKΨ Portal</div>
-          <div className="login-mobile-full">Alpha Kappa Psi</div>
-        </div>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="login-field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </div>
 
-        <div className="login-card">
-          {done ? (
-            <>
-              <h1 className="login-card-title">You're all set</h1>
-              <p className="login-card-sub">Your password has been saved. Go ahead and sign in.</p>
-              <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '0.5rem' }}>
-                Go to sign in
-              </a>
-            </>
-          ) : linkError ? (
-            <>
-              <h1 className="login-card-title">{linkError.title}</h1>
-              <p className="login-card-sub">{linkError.message}</p>
-              <div className="login-error" style={{ marginBottom: '1rem' }}>
-                Already reset your password with this link? <a href="/">Sign in</a> with it.
-                <br />
-                Still can't get in? Use "Forgot password" from the sign-in page to request a fresh link.
-              </div>
-              <a href="/" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                Back to sign in
-              </a>
-            </>
-          ) : !ready ? (
-            <>
-              <h1 className="login-card-title" role="status" aria-live="polite">Verifying link…</h1>
-              <p className="login-card-sub">Please wait while we verify your reset link.</p>
-            </>
-          ) : (
-            <>
-              <h1 className="login-card-title">Reset your password</h1>
-              <p className="login-card-sub">Enter a new password to regain access to your account.</p>
+            <div className="login-field">
+              <label htmlFor="confirm">Confirm password</label>
+              <input
+                id="confirm"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                required
+              />
+            </div>
 
-              <form onSubmit={handleSubmit} noValidate>
-                <div className="login-field">
-                  <label htmlFor="password">Password</label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min. 8 characters"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                  />
-                </div>
+            {error && <div className="login-error" role="alert">{error}</div>}
 
-                <div className="login-field">
-                  <label htmlFor="confirm">Confirm password</label>
-                  <input
-                    id="confirm"
-                    type="password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="Re-enter password"
-                    autoComplete="new-password"
-                    required
-                  />
-                </div>
-
-                {error && <div className="login-error" role="alert">{error}</div>}
-
-                <button type="submit" className="login-btn" disabled={loading}>
-                  <span className="login-btn-inner">
-                    {loading && <span className="login-spinner" />}
-                    {loading ? 'Saving…' : 'Set password'}
-                  </span>
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-
-        <p className="login-footer">Alpha Kappa Psi · Chapter Portal</p>
-      </main>
-    </div>
+            <button type="submit" className="login-btn" disabled={loading}>
+              <span className="login-btn-inner">
+                {loading && <span className="login-spinner" />}
+                {loading ? 'Saving…' : 'Set password'}
+              </span>
+            </button>
+          </form>
+        </>
+      )}
+    </AuthShell>
   )
 }

@@ -53,8 +53,10 @@ export async function calculateEndOfSemesterStanding(semesterId, { confirm = fal
   let totalsByMember;
   let attendanceData;
   try {
-    totalsByMember = await fetchMemberPointTotals(supabase, semesterId);
-    attendanceData = await fetchStandingAttendanceData(supabase, semesterId);
+    [totalsByMember, attendanceData] = await Promise.all([
+      fetchMemberPointTotals(supabase, semesterId),
+      fetchStandingAttendanceData(supabase, semesterId),
+    ]);
   } catch (err) {
     return { success: false, error: err.message };
   }

@@ -112,7 +112,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/calculateEndOfSemesterStanding.handler
-      Timeout: 60 # loops every active brother — give it more room than the default
+      # API Gateway HTTP APIs time out at 30s regardless of the Lambda's own
+      # limit. Keep this just under so a slow run fails visibly to the caller
+      # instead of the gateway erroring while the Lambda finishes (and locks
+      # the semester) in the background. Extra memory = faster CPU.
+      Timeout: 29
+      MemorySize: 1024
       Events:
         Api: { Type: HttpApi, Properties: { Path: /calculate-standing, Method: POST } }
 
@@ -164,7 +169,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/syncToGoogleSheets.handler
-      Timeout: 30
+      Timeout: 29 # under the 30s API Gateway ceiling, see CalculateEndOfSemesterStandingFunction
       Events:
         Api: { Type: HttpApi, Properties: { Path: /sync-sheets, Method: POST } }
 

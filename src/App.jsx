@@ -98,9 +98,15 @@ export default function App() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
+  // Keyed on the user id, not the session object: supabase-js emits a fresh
+  // session object on every TOKEN_REFRESHED / tab-refocus, and keying on it
+  // reset `profile` to undefined each time — unmounting the whole portal to
+  // the skeleton roughly hourly and losing all page state.
+  const sessionUserId = session === undefined ? undefined : session?.user?.id ?? null
+
   useEffect(() => {
-    if (session === undefined) return
-    if (session === null) {
+    if (sessionUserId === undefined) return
+    if (sessionUserId === null) {
       setProfile(null)
       return
     }
@@ -113,7 +119,7 @@ export default function App() {
         setProfileError(err)
         setProfile(null)
       })
-  }, [session])
+  }, [sessionUserId])
 
   function finishInvite() {
     setIsInvite(false)
@@ -157,9 +163,7 @@ export default function App() {
   } else if (PORTAL === 'eboard' && (profile.role === 'eboard' || profile.role === 'committee_head')) {
     content = (
       <Routes>
-        {(profile.role === 'eboard' || profile.role === 'committee_head') && (
-          <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />
-        )}
+        <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />
         <Route path="/*" element={<EboardRouter profile={profile} />} />
       </Routes>
     )

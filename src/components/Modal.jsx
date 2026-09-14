@@ -21,6 +21,11 @@ export default function Modal({
   closeOnBackdrop = true,
 }) {
   const dialogRef = useRef(null)
+  // Callers pass inline arrows for onClose, so a dependency on it would tear
+  // down and re-run this effect on every parent render (focus jumping back
+  // to the opener mid-dialog). Keep the latest handler in a ref instead.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     const previouslyFocused = document.activeElement
@@ -35,7 +40,7 @@ export default function Modal({
     function handleKeyDown(e) {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose?.()
+        onCloseRef.current?.()
         return
       }
       // Keep Tab cycling inside the dialog.
@@ -65,7 +70,7 @@ export default function Modal({
       document.body.style.overflow = previousOverflow
       if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus()
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div className={backdropClassName} onClick={closeOnBackdrop ? onClose : undefined}>

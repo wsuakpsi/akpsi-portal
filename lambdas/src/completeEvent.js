@@ -18,12 +18,14 @@ export async function completeEvent(eventId) {
     // points_ledger is append-only, so re-completing would double-post points.
     return { success: false, error: `Event ${eventId} is already completed` };
   }
+  if (eventRow.status === 'cancelled') {
+    return { success: false, error: `Event ${eventId} was cancelled and cannot be completed` };
+  }
 
-  const { error: updateError } = await supabase
-    .from('events')
-    .update({ status: 'completed' })
-    .eq('id', eventId);
-  if (updateError) return { success: false, error: updateError.message };
+  // The status flip to 'completed' happens LAST (bottom of this function):
+  // if the ledger or notification writes fail part-way, the event stays
+  // 'scheduled' and the officer can simply retry. Two overlapping runs are
+  // caught by the partial unique indexes on points_ledger (migration 0024).
 
   const { data: attendanceRows, error: attendanceError } = await supabase
     .from('attendance')
@@ -102,6 +104,11 @@ export async function completeEvent(eventId) {
     noShows = noShowRsvps;
   }
 
+  // Meetings never carry a point impact: their attendance lives in
+  // meeting_attendance (swept above) and must not produce ledger rows or
+  // "you earned N points" notifications, even zero-delta ones.
+  const pointBearingAttendance = eventRow.category === 'meeting' ? [] : attendanceRows;
+
   const ledgerRows = [
     ...noShows.map((r) => ({
       member_id: r.member_id,
@@ -111,7 +118,7 @@ export async function completeEvent(eventId) {
       delta: NO_SHOW_PENALTY,
       note: 'No-show penalty',
     })),
-    ...attendanceRows.map((r) => ({
+    ...pointBearingAttendance.map((r) => ({
       member_id: r.member_id,
       semester_id: eventRow.semester_id,
       event_id: eventId,
@@ -121,9 +128,18 @@ export async function completeEvent(eventId) {
     })),
   ];
 
+  // 23505 here means a previous run already posted this event's ledger rows
+  // (an overlapping click, or a retry after notifications/status failed
+  // part-way). The points are correct in that case, so skip straight to the
+  // status flip rather than erroring — and skip notifications, which the
+  // earlier run may already have sent.
+  let ledgerAlreadyPosted = false;
   if (ledgerRows.length > 0) {
     const { error: ledgerError } = await supabase.from('points_ledger').insert(ledgerRows);
-    if (ledgerError) return { success: false, error: ledgerError.message };
+    if (ledgerError) {
+      if (ledgerError.code !== '23505') return { success: false, error: ledgerError.message };
+      ledgerAlreadyPosted = true;
+    }
   }
 
   const notifications = [
@@ -132,17 +148,23 @@ export async function completeEvent(eventId) {
       title: 'No-show penalty',
       body: `You didn't check in for "${eventRow.name}" after RSVPing. A ${Math.abs(NO_SHOW_PENALTY)}-point penalty was applied.`,
     })),
-    ...attendanceRows.map((r) => ({
+    ...pointBearingAttendance.map((r) => ({
       member_id: r.member_id,
       title: 'Event attendance recorded',
       body: `You earned ${eventRow.points_value} point(s) for attending "${eventRow.name}".`,
     })),
   ];
 
-  if (notifications.length > 0) {
+  if (notifications.length > 0 && !ledgerAlreadyPosted) {
     const { error: notifError } = await supabase.from('notifications').insert(notifications);
     if (notifError) return { success: false, error: notifError.message };
   }
+
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({ status: 'completed' })
+    .eq('id', eventId);
+  if (updateError) return { success: false, error: updateError.message };
 
   return { success: true, noShows: noShows.length, attended: attendanceRows.length, meetingSweep };
 }

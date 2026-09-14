@@ -54,8 +54,10 @@ export async function syncToGoogleSheets(semesterId, { archive = false } = {}) {
   let totalsByMember;
   let meetingCountsByMember;
   try {
-    totalsByMember = await fetchMemberPointTotals(supabase, semesterId);
-    meetingCountsByMember = await fetchMeetingAttendanceCounts(supabase, semesterId);
+    [totalsByMember, meetingCountsByMember] = await Promise.all([
+      fetchMemberPointTotals(supabase, semesterId),
+      fetchMeetingAttendanceCounts(supabase, semesterId),
+    ]);
   } catch (err) {
     return { success: false, error: err.message };
   }

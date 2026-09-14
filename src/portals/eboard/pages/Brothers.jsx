@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester } from '../lib/queries'
+import { getActiveSemester, initials } from '../lib/queries'
+import { selectAllRows } from '../../../lib/selectAll'
 import Modal from '../../../components/Modal'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
@@ -193,11 +194,9 @@ export default function Brothers() {
 
         const meetingIds = (meetingEvents || []).map((e) => e.id)
         if (meetingIds.length > 0) {
-          const { data: attendanceRows, error: attendanceError } = await supabase
-            .from('meeting_attendance')
-            .select('member_id, status')
-            .in('event_id', meetingIds)
-          if (attendanceError) throw attendanceError
+          const attendanceRows = await selectAllRows((db) =>
+            db.from('meeting_attendance').select('id, member_id, status').in('event_id', meetingIds)
+          )
 
           for (const row of attendanceRows || []) {
             if (!meetingMap[row.member_id]) meetingMap[row.member_id] = { excused: 0, unexcused: 0 }
@@ -277,7 +276,7 @@ export default function Brothers() {
         <div>
           <h1>Brothers</h1>
           <p className="page-subtitle">
-            {members.length} active members &middot; {lowerCount} on lower threshold &middot; {suspendedCount} suspended
+            {members.length} members &middot; {lowerCount} on lower threshold &middot; {suspendedCount} suspended
           </p>
         </div>
       </div>
@@ -351,7 +350,7 @@ export default function Brothers() {
                   <tr key={m.id}>
                     <td>
                       <div className="member-cell">
-                        <div className="avatar">{m.full_name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                        <div className="avatar">{initials(m.full_name)}</div>
                         <div>
                           <div className="member-name">{m.full_name}</div>
                           <div className="member-sub">{m.pledge_class}</div>

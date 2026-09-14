@@ -3,12 +3,12 @@
  * every points_ledger row for the given semester, grouped by member and
  * category.
  */
+import { selectAllRows } from './selectAll.js';
+
 export async function fetchMemberPointTotals(supabase, semesterId) {
-  const { data, error } = await supabase
-    .from('points_ledger')
-    .select('member_id, category, delta')
-    .eq('semester_id', semesterId);
-  if (error) throw error;
+  const data = await selectAllRows(() =>
+    supabase.from('points_ledger').select('id, member_id, category, delta').eq('semester_id', semesterId),
+  );
 
   const totals = new Map();
   for (const row of data) {
@@ -54,11 +54,9 @@ export async function fetchStandingAttendanceData(supabase, semesterId) {
   const excusedEventsByMember = new Map();
 
   if (activeEventIds.length > 0) {
-    const { data: attendanceRows, error: attendanceError } = await supabase
-      .from('attendance')
-      .select('member_id, event_id')
-      .in('event_id', activeEventIds);
-    if (attendanceError) throw attendanceError;
+    const attendanceRows = await selectAllRows(() =>
+      supabase.from('attendance').select('id, member_id, event_id').in('event_id', activeEventIds),
+    );
     for (const row of attendanceRows) {
       if (!attendedByMember.has(row.member_id)) attendedByMember.set(row.member_id, new Set());
       attendedByMember.get(row.member_id).add(row.event_id);
@@ -66,12 +64,13 @@ export async function fetchStandingAttendanceData(supabase, semesterId) {
 
     // Voided forms (from the cancellation cascade) are excluded by both the
     // 'approved' filter and the activeEventIds restriction.
-    const { data: formRows, error: formsError } = await supabase
-      .from('missing_meeting_forms')
-      .select('member_id, event_id')
-      .eq('status', 'approved')
-      .in('event_id', activeEventIds);
-    if (formsError) throw formsError;
+    const formRows = await selectAllRows(() =>
+      supabase
+        .from('missing_meeting_forms')
+        .select('id, member_id, event_id')
+        .eq('status', 'approved')
+        .in('event_id', activeEventIds),
+    );
     for (const row of formRows) {
       excusedCountByMember.set(row.member_id, (excusedCountByMember.get(row.member_id) || 0) + 1);
       if (!excusedEventsByMember.has(row.member_id)) excusedEventsByMember.set(row.member_id, new Set());
@@ -98,11 +97,9 @@ export async function fetchMeetingAttendanceCounts(supabase, semesterId) {
   const eventIds = meetingEvents.map((e) => e.id);
   if (eventIds.length === 0) return counts;
 
-  const { data, error } = await supabase
-    .from('meeting_attendance')
-    .select('member_id, status')
-    .in('event_id', eventIds);
-  if (error) throw error;
+  const data = await selectAllRows(() =>
+    supabase.from('meeting_attendance').select('id, member_id, status').in('event_id', eventIds),
+  );
 
   for (const row of data) {
     if (!counts.has(row.member_id)) {

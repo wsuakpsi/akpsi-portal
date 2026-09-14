@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { signOut } from '../../../lib/auth'
+import { initials } from '../../../lib/queries'
 
 const icons = {
   overview: (
@@ -46,12 +47,6 @@ const icons = {
       <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
     </svg>
   ),
-  pnm: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" />
-      <path d="M20 8v6M23 11h-6" />
-    </svg>
-  ),
   semesters: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
@@ -80,16 +75,6 @@ const sections = [
     ],
   },
 ]
-
-function initials(name) {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
-}
 
 const committeeHeadSections = [
   {

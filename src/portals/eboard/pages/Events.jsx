@@ -5,29 +5,13 @@ import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, EVENT_CATEGORIES, completionSummary } from '../lib/queries'
 import Modal from '../../../components/Modal'
+import ConfirmModal from '../../../components/ConfirmModal'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const CATEGORIES = EVENT_CATEGORIES
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
 const ADD_TO_CALENDAR_URL = import.meta.env.VITE_ADD_TO_CALENDAR_URL
-
-function ConfirmModal({ title, body, confirmLabel, busy, onConfirm, onClose }) {
-  return (
-    <Modal onClose={onClose} labelledBy="confirm-title">
-      <h2 id="confirm-title">{title}</h2>
-      <p className="note-text">{body}</p>
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-        <button type="button" className="btn" disabled={busy} onClick={onConfirm}>
-          {busy ? 'Working...' : confirmLabel}
-        </button>
-        <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
-          Cancel
-        </button>
-      </div>
-    </Modal>
-  )
-}
 
 function AddEventForm({ semester, onClose, onAdded }) {
   const [name, setName] = useState('')

@@ -5,7 +5,7 @@ ask if something errors in a way this doesn't cover.
 
 ---
 
-## 1. AWS — deploy all 9 Lambdas + API Gateway
+## 1. AWS — deploy all Lambdas + API Gateway
 
 ### 1a. One-time setup
 
@@ -32,7 +32,7 @@ ask if something errors in a way this doesn't cover.
 
 ### 1b. Deploy
 
-The template is already written: `lambdas/template.yaml`. It defines all 9
+The template is already written: `lambdas/template.yaml`. It defines all 14
 API-facing Lambdas behind one shared HTTP API, plus the nightly Sheets-sync
 cron (disabled by default until you've done step 2 below).
 
@@ -82,6 +82,8 @@ mapping (path appended to the base URL):
 | `VITE_REMOVE_ATTENDANCE_URL` | `/remove-attendance` |
 | `VITE_RECORD_LATE_CANCEL_URL` | `/record-late-cancel` |
 | `VITE_SHEETS_SYNC_URL` | `/sync-sheets` |
+| `VITE_ADD_TO_CALENDAR_URL` | `/add-to-calendar` |
+| `VITE_INVITE_BROTHER_URL` | `/invite-brother` |
 
 Example: if `ApiBaseUrl` is `https://abc123xyz.execute-api.us-east-1.amazonaws.com`,
 then `VITE_COMPLETE_EVENT_URL=https://abc123xyz.execute-api.us-east-1.amazonaws.com/complete-event`.

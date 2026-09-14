@@ -1,7 +1,7 @@
 import { getSupabaseClient } from './lib/supabaseClient.js';
 import { syncToGoogleSheets } from './syncToGoogleSheets.js';
 
-// EventBridge-invoked entrypoint (see infra/nightly-sheets-sync.template.yaml)
+// EventBridge-invoked entrypoint (NightlySheetsSyncFunction in template.yaml)
 // — unlike the API Gateway `handler` export in syncToGoogleSheets.js, there's
 // no human session to authenticate here, so this calls the core function
 // directly rather than going through wrapEboardHandler. Looks up the active

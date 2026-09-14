@@ -2,14 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 
-export function initials(name) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
-}
+import { initials } from '../../../lib/queries'
+
+export { initials }
 
 function timeAgo(iso) {
   const ms = Date.now() - new Date(iso).getTime()

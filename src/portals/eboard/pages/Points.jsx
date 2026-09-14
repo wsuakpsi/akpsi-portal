@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester, POINT_CATEGORIES } from '../lib/queries'
+import { getActiveSemester, POINT_CATEGORIES, initials } from '../lib/queries'
+import { selectAllRows } from '../../../lib/selectAll'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const CALCULATE_STANDING_URL = import.meta.env.VITE_CALCULATE_STANDING_URL
@@ -89,15 +90,15 @@ export default function Points() {
           return
         }
 
-        const [membersRes, ledgerRes] = await Promise.all([
+        const [membersRes, ledgerRows] = await Promise.all([
           supabase.from('members').select('id, full_name').order('full_name', { ascending: true }),
-          supabase
-            .from('points_ledger')
-            .select('member_id, category, delta')
-            .eq('semester_id', activeSemester.id),
+          // Grows with members × events — page past the 1000-row cap.
+          selectAllRows((db) =>
+            db.from('points_ledger').select('id, member_id, category, delta').eq('semester_id', activeSemester.id)
+          ),
         ])
         if (membersRes.error) throw membersRes.error
-        if (ledgerRes.error) throw ledgerRes.error
+        const ledgerRes = { data: ledgerRows }
 
         const totalsByMember = {}
         for (const member of membersRes.data || []) {
@@ -218,7 +219,7 @@ export default function Points() {
                     <tr key={row.id}>
                       <td>
                         <div className="member-cell">
-                          <div className="avatar">{row.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
+                          <div className="avatar">{initials(row.name)}</div>
                           <div className="member-name">{row.name}</div>
                         </div>
                       </td>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
+import { initials } from '../lib/queries'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const STATUS_FILTERS = ['all', 'open', 'resolved', 'escalated']
@@ -90,9 +91,7 @@ export default function Discipline() {
                 <tr key={bip.id}>
                   <td>
                     <div className="member-cell">
-                      <div className="avatar">
-                        {(bip.members?.full_name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('')}
-                      </div>
+                      <div className="avatar">{initials(bip.members?.full_name)}</div>
                       <div className="member-name">{bip.members?.full_name || 'Unknown'}</div>
                     </div>
                   </td>

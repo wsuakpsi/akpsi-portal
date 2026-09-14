@@ -272,12 +272,8 @@ export default function Profile({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.id])
 
-  // Spec 8.1: "System blocks submission if first_semester_initiated matches
-  // the active semester name." `first_semester_initiated` is nullable and,
-  // as of this migration, nothing populates it yet for any member — see
-  // migration 0010 — so this is inert (never blocks anyone) until E-Board
-  // starts setting it per-brother.
-  const isFirstSemester = Boolean(semester && profile.first_semester_initiated === semester.name)
+  // First-semester brothers aren't blocked here — E-Board rejects those
+  // applications on review instead (decision: keep the UI simple).
   const canApply = !application || application.status === 'denied'
 
   return (
@@ -348,13 +344,7 @@ export default function Profile({ profile }) {
             {application?.status === 'denied' && (
               <span className="status-badge denied">Denied &mdash; you may resubmit</span>
             )}
-            {isFirstSemester && (
-              <p className="note-text">
-                First-semester brothers aren't eligible for the lower threshold. You can apply starting next
-                semester.
-              </p>
-            )}
-            {!isFirstSemester && canApply && !showForm && (
+            {canApply && !showForm && (
               <button className="btn" onClick={() => setShowForm(true)}>
                 {application?.status === 'denied' ? 'Resubmit' : 'Apply'}
               </button>
