@@ -287,6 +287,7 @@ export default function EventDetail() {
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [rsvpSearch, setRsvpSearch] = useState('')
+  const [checkingInRsvpId, setCheckingInRsvpId] = useState(null)
   const [attendanceSearch, setAttendanceSearch] = useState('')
 
   async function load() {
@@ -361,6 +362,22 @@ export default function EventDetail() {
     await load()
   }
 
+  // Check in straight from the RSVP list — same Lambda as the manual
+  // check-in search box, just pre-filled with the RSVP's member.
+  async function handleRsvpCheckIn(rsvp) {
+    const name = rsvp.members?.full_name || 'this brother'
+    setCheckingInRsvpId(rsvp.id)
+    try {
+      await callLambda(RECORD_ATTENDANCE_URL, { eventId: id, memberId: rsvp.member_id })
+      toast.success(`Checked in ${name}.`)
+      await load()
+    } catch (err) {
+      toast.error(`Could not check in ${name}: ${err.message}`)
+    } finally {
+      setCheckingInRsvpId(null)
+    }
+  }
+
   if (loading) return <EboardPageSkeleton variant="detail" />
   if (error) return <div className="eboard-main"><p className="error-text" role="alert">{error}</p></div>
   if (!event) return <div className="eboard-main">Event not found.</div>
@@ -423,14 +440,38 @@ export default function EventDetail() {
             {filteredRsvps.length === 0 && <p className="empty-state">No RSVPs match "{rsvpSearch}".</p>}
             {filteredRsvps.length > 0 && (
               <table>
-                <thead><tr><th>Name</th><th>Status</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th><span className="sr-only">Check-in</span></th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {filteredRsvps.map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.members?.full_name || '-'}</td>
-                      <td><span className={`status-badge ${r.status}`}>{r.status}</span></td>
-                    </tr>
-                  ))}
+                  {filteredRsvps.map((r) => {
+                    const attended = attendedIds.has(r.member_id)
+                    const canCheckIn = event.status === 'scheduled' && !attended
+                    return (
+                      <tr key={r.id}>
+                        <td>{r.members?.full_name || '-'}</td>
+                        <td><span className={`status-badge ${r.status}`}>{r.status}</span></td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {attended ? (
+                            <span className="status-badge attended">Checked in</span>
+                          ) : canCheckIn ? (
+                            <button
+                              type="button"
+                              className="btn small"
+                              disabled={checkingInRsvpId === r.id || busy}
+                              onClick={() => handleRsvpCheckIn(r)}
+                            >
+                              {checkingInRsvpId === r.id ? 'Checking in...' : 'Check in'}
+                            </button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )}
