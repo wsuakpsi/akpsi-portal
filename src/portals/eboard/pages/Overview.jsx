@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const LAST_SYNC_STORAGE_KEY = 'eboard.lastSheetsSyncAt'
 
@@ -178,7 +179,7 @@ export default function Overview() {
     }
   }, [])
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="overview" />
 
   const totalPendingForms = pendingFormCount + lowerThresholdCount
   const lastSyncAt = localStorage.getItem(LAST_SYNC_STORAGE_KEY)

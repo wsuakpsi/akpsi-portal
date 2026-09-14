@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const STATUS_FILTERS = ['all', 'open', 'resolved', 'escalated']
 
@@ -33,7 +34,7 @@ export default function Discipline() {
     load()
   }, [])
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="table" />
 
   const filtered = bips.filter((bip) => {
     if (statusFilter !== 'all' && bip.status !== statusFilter) return false

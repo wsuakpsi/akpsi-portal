@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { getActiveSemester, getLeaderboard } from '../lib/queries'
 import Topbar from '../components/Topbar'
+import { BrotherPageSkeleton } from '../../../components/Skeleton'
 
 export default function Leaderboard({ profile }) {
   const [loading, setLoading] = useState(true)
@@ -40,7 +41,7 @@ export default function Leaderboard({ profile }) {
         <div className="topbar-title">Leaderboard</div>
       </Topbar>
       <div className="page">
-        {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+        {loading && <BrotherPageSkeleton variant="list" />}
         {error && <p className="error-text" role="alert">{error}</p>}
         {!loading && rows.length === 0 && <p className="empty-state">No points recorded yet this semester.</p>}
         {rows.map((row, i) => (

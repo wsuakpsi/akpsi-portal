@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
 import Topbar from '../components/Topbar'
+import { BrotherPageSkeleton } from '../../../components/Skeleton'
 
 const RECORD_LATE_CANCEL_URL = import.meta.env.VITE_RECORD_LATE_CANCEL_URL
 const LATE_CANCEL_WINDOW_HOURS = 24
@@ -171,7 +172,7 @@ export default function Events({ profile }) {
         <div className="topbar-title">Events</div>
       </Topbar>
       <div className="page">
-        {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+        {loading && <BrotherPageSkeleton variant="list" />}
         {error && <p className="error-text" role="alert">{error}</p>}
 
         {!loading && (

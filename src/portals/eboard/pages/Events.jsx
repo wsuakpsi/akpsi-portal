@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, EVENT_CATEGORIES } from '../lib/queries'
 import Modal from '../../../components/Modal'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const CATEGORIES = EVENT_CATEGORIES
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
@@ -280,7 +281,7 @@ export default function Events() {
     })
   }, [events, showPast, searchName, dateFrom, dateTo])
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="events" />
 
   const upcoming = filteredEvents.filter((e) => e.status === 'scheduled')
   const completed = filteredEvents.filter((e) => e.status === 'completed')

@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDateTime, toDatetimeLocalValue, EVENT_CATEGORIES } from '../lib/queries'
 import Modal from '../../../components/Modal'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const COMPLETE_EVENT_URL = import.meta.env.VITE_COMPLETE_EVENT_URL
 const CANCEL_EVENT_URL = import.meta.env.VITE_CANCEL_EVENT_URL
@@ -360,7 +361,7 @@ export default function EventDetail() {
     await load()
   }
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="detail" />
   if (error) return <div className="eboard-main"><p className="error-text" role="alert">{error}</p></div>
   if (!event) return <div className="eboard-main">Event not found.</div>
 

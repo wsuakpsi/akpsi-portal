@@ -11,6 +11,7 @@ import Join from './pages/Join'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
 import CheckInQrPage from './portals/eboard/pages/CheckInQrPage'
+import { AppSkeleton } from './components/Skeleton'
 
 const PORTAL = import.meta.env.VITE_PORTAL
 
@@ -132,7 +133,7 @@ export default function App() {
   } else if (isRecovery) {
     content = <ResetPassword onDone={() => setIsRecovery(false)} />
   } else if (session === undefined || profile === undefined) {
-    content = <div style={{ margin: '4rem auto', textAlign: 'center' }}>Loading...</div>
+    content = <AppSkeleton />
   } else if (session && !profile && profileError) {
     content = <ProfileSetupError error={profileError} />
   } else if (!session || !profile) {

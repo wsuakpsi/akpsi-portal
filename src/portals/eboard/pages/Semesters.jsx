@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDate } from '../lib/queries'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const CREATE_SEMESTER_URL = import.meta.env.VITE_CREATE_SEMESTER_URL
 
@@ -99,7 +100,7 @@ export default function Semesters() {
     load()
   }, [])
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="table" />
 
   return (
     <div className="eboard-main">

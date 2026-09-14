@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester, POINT_CATEGORIES } from '../lib/queries'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const CALCULATE_STANDING_URL = import.meta.env.VITE_CALCULATE_STANDING_URL
 
@@ -166,7 +167,7 @@ export default function Points() {
     }
   }
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="table" />
 
   const filteredRows = rows.filter((row) => row.name.toLowerCase().includes(search.trim().toLowerCase()))
 

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
 import Topbar from '../components/Topbar'
+import { BrotherPageSkeleton } from '../../../components/Skeleton'
 
 const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social']
 
@@ -90,7 +91,6 @@ export default function Home({ profile }) {
     }
   }, [profile.id])
 
-  if (loading) return <div className="page">Loading...</div>
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -104,7 +104,10 @@ export default function Home({ profile }) {
 
       <div className="page">
         {error && <p className="error-text" role="alert">{error}</p>}
+        {loading && <BrotherPageSkeleton variant="home" />}
 
+        {!loading && (
+        <>
         <div className="standing-card">
           <div className="standing-row">
             <span className="standing-label">Points this semester</span>
@@ -143,6 +146,8 @@ export default function Home({ profile }) {
             </div>
           </div>
         ))}
+        </>
+        )}
       </div>
     </div>
   )

@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { signOut } from '../../../lib/auth'
 import { getActiveSemester } from '../lib/queries'
 import Topbar, { initials } from '../components/Topbar'
+import { BrotherPageSkeleton } from '../../../components/Skeleton'
 
 const PHONE_RE = /^[0-9()+\-.\s]{7,20}$/
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
@@ -334,7 +335,7 @@ export default function Profile({ profile }) {
 
       <div className="card">
         <h2>Lower threshold application</h2>
-        {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+        {loading && <BrotherPageSkeleton variant="profile" />}
         {!loading && !semester && <p className="empty-state">No active semester.</p>}
         {!loading && semester && (
           <>

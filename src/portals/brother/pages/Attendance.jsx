@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { formatDateTime } from '../lib/queries'
 import Topbar from '../components/Topbar'
+import { BrotherPageSkeleton } from '../../../components/Skeleton'
 
 function ExcuseForm({ event, onClose, onSubmitted }) {
   const [reason, setReason] = useState('')
@@ -142,7 +143,7 @@ export default function Attendance({ profile }) {
         <div className="topbar-title">Attendance</div>
       </Topbar>
       <div className="page">
-      {loading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+      {loading && <BrotherPageSkeleton variant="list" />}
       {error && <p className="error-text" role="alert">{error}</p>}
 
       {!loading && (

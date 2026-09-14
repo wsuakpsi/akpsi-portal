@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime } from '../lib/queries'
 import Modal from '../../../components/Modal'
+import { EboardPageSkeleton, SkeletonTable } from '../../../components/Skeleton'
 
 const STATUSES = ['present', 'excused', 'unexcused']
 
@@ -117,7 +118,7 @@ export default function Attendance() {
     if (selectedMeetingId) loadRows(selectedMeetingId)
   }, [selectedMeetingId])
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="table" />
 
   return (
     <div className="eboard-main">
@@ -144,7 +145,12 @@ export default function Attendance() {
           </div>
 
           <div className="card">
-            {rowsLoading && <p className="empty-state" role="status" aria-live="polite">Loading...</p>}
+            {rowsLoading && (
+              <div role="status" aria-live="polite" aria-busy="true">
+                <span className="sr-only">Loading…</span>
+                <SkeletonTable rows={8} cols={3} />
+              </div>
+            )}
             {!rowsLoading && rows.length === 0 && (
               <p className="empty-state">No attendance recorded for this meeting yet.</p>
             )}

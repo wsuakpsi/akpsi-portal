@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { getActiveSemester } from '../lib/queries'
 import Modal from '../../../components/Modal'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const INVITE_BROTHER_URL = import.meta.env.VITE_INVITE_BROTHER_URL
 const BROTHER_PORTAL_URL = import.meta.env.VITE_BROTHER_PORTAL_URL || window.location.origin
@@ -265,7 +266,7 @@ export default function Brothers() {
     URL.revokeObjectURL(url)
   }
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="table" />
 
   const lowerCount = members.filter((m) => thresholdByMember[m.id] === 'approved').length
   const suspendedCount = members.filter((m) => m.status === 'suspended').length

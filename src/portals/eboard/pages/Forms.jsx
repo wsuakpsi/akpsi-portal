@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
 import { formatDateTime } from '../lib/queries'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const REVIEW_FORM_URL = import.meta.env.VITE_REVIEW_FORM_URL
 
@@ -84,7 +85,7 @@ export default function Forms({ profile }) {
     }
   }
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="events" />
 
   const totalPending = missingMeetingForms.length + thresholdApps.length
 

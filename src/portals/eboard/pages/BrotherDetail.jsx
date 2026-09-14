@@ -10,6 +10,7 @@ import {
   STANDARD_THRESHOLDS,
   LOWER_THRESHOLDS,
 } from '../lib/queries'
+import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const POST_ADJUSTMENT_URL = import.meta.env.VITE_POST_ADJUSTMENT_URL
 const ADJUSTMENT_CATEGORIES = ['adjustment', ...POINT_CATEGORIES, 'rush', 'extra', 'meeting']
@@ -552,7 +553,7 @@ export default function BrotherDetail({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  if (loading) return <div className="eboard-main" role="status" aria-live="polite">Loading...</div>
+  if (loading) return <EboardPageSkeleton variant="detail" />
   if (error) return <div className="eboard-main"><p className="error-text" role="alert">{error}</p></div>
   if (!member) return <div className="eboard-main">Brother not found.</div>
 
