@@ -111,6 +111,9 @@ export default function Home({ profile }) {
         <div className="standing-card">
           <div className="standing-row">
             <span className="standing-label">Points this semester</span>
+            <span className="standing-total">
+              {POINT_CATEGORIES.reduce((sum, cat) => sum + (pointTotals[cat] ?? 0), 0)} pts
+            </span>
           </div>
           {POINT_CATEGORIES.map((cat) => (
             <div className="progress-row" key={cat}>

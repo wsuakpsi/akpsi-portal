@@ -453,6 +453,12 @@ button {
   font-size: 0.75rem;
 }
 
+.standing-total {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .progress-row {
   display: flex;
   justify-content: space-between;
