@@ -487,32 +487,34 @@ button {
   margin-top: 0.1rem;
 }
 
-.roster-detail-table {
-  width: 100%;
-  border-collapse: collapse;
+.roster-detail-list {
+  display: flex;
+  flex-direction: column;
 }
 
-.roster-detail-table th {
-  text-align: left;
-  color: #666;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.4rem 0.5rem 0.4rem 0;
-  vertical-align: top;
-  white-space: nowrap;
-}
-
-.roster-detail-table td {
-  font-size: 0.85rem;
-  padding: 0.4rem 0;
-}
-
-.roster-detail-table tr {
+.roster-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0;
   border-bottom: 1px solid #f0f0ee;
 }
 
-.roster-detail-table tr:last-child {
+.roster-detail-row:last-child {
   border-bottom: none;
+}
+
+.roster-detail-label {
+  color: #666;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.roster-detail-value {
+  font-size: 0.9rem;
+  word-break: break-word;
 }
 
 .standing-card {

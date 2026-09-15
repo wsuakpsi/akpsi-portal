@@ -76,24 +76,36 @@ export default function RosterDetail({ profile }) {
               <span className={`status-badge ${member.status}`}>{member.status}</span>
               <span className="pill">{roleLabel(member.role)}</span>
             </div>
-            <table className="roster-detail-table">
-              <tbody>
-                <tr><th>Pledge class</th><td>{member.pledge_class}</td></tr>
-                {member.eboard_position && <tr><th>Position</th><td>{member.eboard_position}</td></tr>}
-                <tr><th>Email</th><td>{member.email}</td></tr>
-                <tr><th>Phone</th><td>{member.phone_number || '—'}</td></tr>
-                <tr>
-                  <th>Resume</th>
-                  <td>
-                    {member.resume_url ? (
-                      <a href={member.resume_url} target="_blank" rel="noreferrer">View resume</a>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="roster-detail-list">
+              <div className="roster-detail-row">
+                <span className="roster-detail-label">Pledge class</span>
+                <span className="roster-detail-value">{member.pledge_class}</span>
+              </div>
+              {member.eboard_position && (
+                <div className="roster-detail-row">
+                  <span className="roster-detail-label">Position</span>
+                  <span className="roster-detail-value">{member.eboard_position}</span>
+                </div>
+              )}
+              <div className="roster-detail-row">
+                <span className="roster-detail-label">Email</span>
+                <span className="roster-detail-value">{member.email}</span>
+              </div>
+              <div className="roster-detail-row">
+                <span className="roster-detail-label">Phone</span>
+                <span className="roster-detail-value">{member.phone_number || '—'}</span>
+              </div>
+              <div className="roster-detail-row">
+                <span className="roster-detail-label">Resume</span>
+                <span className="roster-detail-value">
+                  {member.resume_url ? (
+                    <a href={member.resume_url} target="_blank" rel="noreferrer">View resume</a>
+                  ) : (
+                    '—'
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
