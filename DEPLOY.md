@@ -331,39 +331,35 @@ add `https://recruitment.wsuakpsi.com/reset-password` and
 `http://localhost:5181/**` (so password resets from the recruitment login
 page land on the right domain).
 
-### 5d. Deploy the Sheets-sync Lambda + finish Sheets for every portal
+### 5d. Sheets + Calendar credentials — DONE (2026-09-15)
 
-`SyncRushApplicationsToSheetsFunction` is in `lambdas/template.yaml` but
-hasn't been deployed. Sheets sync for the brother/E-Board portals was also
-never finished (`GoogleSheetsSpreadsheetId` is still blank in the deployed
-stack). One `sam deploy` covers both.
+The stack now carries the `akpsi-portal-backend@akpsi-beta-omicron`
+service-account key, both spreadsheet ids, and `EnableNightlySync=true`.
+`SyncRushApplicationsToSheetsFunction` is deployed at `/sync-rush-sheets`.
 
-1. Do section **2** steps 1–5 once if you haven't (service account JSON +
-   share the sheet with it). **Create two spreadsheets**: the chapter
-   points/attendance one, and a separate one for applications. Share both
-   with the service account (Editor).
-2. Deploy, guided so every existing parameter keeps its current value and
-   you only type the new ones:
-   ```bash
-   cd lambdas
-   sam build
-   sam deploy --guided
-   ```
-   When prompted:
-   - `GoogleServiceAccountJson` → paste the JSON **as one line**
-     (`cat key.json | tr -d '\n' | pbcopy` on a Mac copies it ready to paste)
-   - `GoogleSheetsSpreadsheetId` → the points/attendance spreadsheet id
-   - `RushApplicationsSpreadsheetId` → the applications spreadsheet id
-   - `EnableNightlySync` → `true`
-   - everything else → press Enter to keep the saved value
-3. The output `RouteMap` now includes `/sync-rush-sheets`. Add the full URL
-   as `VITE_RUSH_SHEETS_SYNC_URL` on the recruitment Amplify app (5b step 4)
-   and redeploy it (**Redeploy this version** in the console is enough — env
-   vars are read at build time).
+| Sheet | ID |
+|---|---|
+| Points / attendance (`Current Semester`, `Archive` tabs) | `1HTu3qUyJ1GTcowhUfZBLD2a6pY0k--Eu4hlxUeECYFc` |
+| Recruitment applications (`Applications` tab) | `11Vgzrhj0wi7ZrWl4qrpmIoY_r3mXgA8O2PHnJrBNQrY` |
 
-After this: the E-Board portal's **Sheets sync** page and the recruitment
-**Sync to Google Sheets** button both work, and the nightly cron writes the
-points sheet at 07:00 UTC.
+**From now on deploy the Lambdas with `lambdas/deploy.sh`, never a bare
+`sam deploy`.** `samconfig.toml` is committed, so the key lives only in the
+git-ignored `lambdas/service-account.json`; the script merges it in at
+deploy time. A bare `sam deploy` would pass no key and CloudFormation would
+reset `GoogleServiceAccountJson` to its `''` default, breaking Sheets and
+Calendar sync for every Lambda.
+
+```bash
+lambdas/deploy.sh          # sam build + sam deploy with the key merged in
+```
+
+On a new machine: download a key for the service account (Google Cloud →
+IAM & Admin → Service Accounts → akpsi-portal-backend → Keys → Add key →
+JSON) and save it as `lambdas/service-account.json` before running it.
+
+Calendar sync uses the same account: share the chapter Google Calendar
+(`wsuakpsi15@gmail.com`) with `akpsi-portal-backend@akpsi-beta-omicron.iam.gserviceaccount.com`
+as "Make changes to events" if it isn't already.
 
 ### 5e. Verify
 

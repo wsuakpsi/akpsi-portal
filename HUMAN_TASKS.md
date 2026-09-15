@@ -130,10 +130,7 @@ can vote/comment/deliberate at `/recruitment`. What's still needed:
 - [ ] **Host it** at `recruitment.wsuakpsi.com` — a third **Amplify** app
       (us-east-2) on the same repo/branch as brother and eboard, with
       `VITE_PORTAL=recruitment`. Exact steps: `DEPLOY.md` section 5.
-- [ ] **Finish Google Sheets for all portals** — the service account was
-      never created, so Sheets sync is broken in the E-Board portal too.
-      One `sam deploy --guided` fixes both and deploys the new
-      `SyncRushApplicationsToSheetsFunction`: `DEPLOY.md` section 5d.
+- [x] **Google Sheets + Calendar credentials deployed** (2026-09-15) — see `DEPLOY.md` 5d; deploy Lambdas with `lambdas/deploy.sh` from now on.
 - [ ] **Click-test once deployed**: submit a real application through the
       public form, confirm it shows up in the deliberation dashboard, vote
       as two different members and check the tally updates live for the
