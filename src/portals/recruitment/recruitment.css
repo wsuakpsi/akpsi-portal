@@ -273,6 +273,8 @@
   font-size: 0.88rem;
   background: var(--surface);
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
