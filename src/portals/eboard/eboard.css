@@ -611,6 +611,20 @@ button {
   overflow-y: auto;
 }
 
+/* Keeps a form's submit/cancel buttons in view even when the fields above
+   overflow the modal's max-height and require scrolling — without this,
+   the buttons scroll out of sight along with the rest of the form. */
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  position: sticky;
+  bottom: 0;
+  margin: 0.75rem -1.5rem -1.5rem;
+  padding: 0.75rem 1.5rem 1.5rem;
+  background: #fff;
+  border-top: 1px solid var(--border);
+}
+
 .note-text {
   font-size: 0.8rem;
   color: var(--text-muted);

@@ -134,7 +134,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
           />
           <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+        <div className="modal-actions">
           <button type="submit" className="btn" disabled={submitting}>
             {submitting ? 'Adding...' : 'Add event'}
           </button>

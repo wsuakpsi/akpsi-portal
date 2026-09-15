@@ -2,4 +2,4 @@
 // recruitment.wsuakpsi.com, then rebuild and deploy. While false, visitors
 // see "Applications have not opened yet." Members can still sign in at
 // /login to deliberate either way.
-export const APPLICATIONS_OPEN = false
+export const APPLICATIONS_OPEN = true
