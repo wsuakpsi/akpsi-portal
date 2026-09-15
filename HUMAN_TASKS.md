@@ -54,10 +54,15 @@ configuration issue, not (only) code — see `DEPLOY.md` section 4.
 - [ ] Send yourself a test invite from the Brothers page and confirm: link →
       set password → straight into the portal → sign out → sign back in with
       that password on another browser.
-- [ ] Once that works, remove the `/join` page (`src/pages/Join.jsx`, the
-      `isJoin` branch in `src/App.jsx`, the "Copy join link" button in
-      `src/portals/eboard/pages/Brothers.jsx`, and migration 0020's
-      `pending_invites_insert_self` policy).
+- [x] Self-serve join is disabled: `src/pages/Join.jsx` now shows an
+      "invite only, contact VP Membership or VP Technology" message instead
+      of a sign-up form, and migration `0031_disable_self_join.sql` drops
+      migration 0020's `pending_invites_insert_self` policy so the API can't
+      be called directly either. **Run `supabase db push` (or apply
+      `0031_disable_self_join.sql`) against the live project** — this repo
+      change alone doesn't touch the deployed database. The `isJoin` branch
+      in `src/App.jsx` and `src/pages/Join.jsx` itself can still be deleted
+      outright later if nothing should ever land on `/join` again.
 
 ## 3. Create real test accounts (Claude will never do this step)
 

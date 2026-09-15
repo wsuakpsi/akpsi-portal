@@ -128,16 +128,11 @@ export default function App() {
     window.history.replaceState({}, '', '/')
   }
 
-  function finishJoin() {
-    setIsJoin(false)
-    window.history.replaceState({}, '', '/')
-  }
-
   let content
   if (isInvite) {
     content = <SetPassword onDone={finishInvite} />
   } else if (isJoin) {
-    content = <Join onDone={finishJoin} />
+    content = <Join />
   } else if (isRecovery) {
     content = <ResetPassword onDone={() => setIsRecovery(false)} />
   } else if (session === undefined || profile === undefined) {

@@ -9,8 +9,6 @@ import Modal from '../../../components/Modal'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const INVITE_BROTHER_URL = import.meta.env.VITE_INVITE_BROTHER_URL
-const BROTHER_PORTAL_URL = import.meta.env.VITE_BROTHER_PORTAL_URL || window.location.origin
-const JOIN_LINK = `${BROTHER_PORTAL_URL}/join`
 
 const ROLES = ['brother', 'eboard', 'committee_head']
 const STATUSES = ['active', 'probation', 'suspended']
@@ -313,17 +311,6 @@ export default function Brothers() {
         </select>
         <div className="spacer" />
         <button className="btn secondary" onClick={handleExport}>Export</button>
-        <button
-          className="btn secondary"
-          onClick={() => {
-            navigator.clipboard
-              .writeText(JOIN_LINK)
-              .then(() => toast.success('Join link copied — send it to the group.'))
-              .catch(() => toast.error(`Could not copy automatically — the link is ${JOIN_LINK}`))
-          }}
-        >
-          Copy join link
-        </button>
         <button className="btn" onClick={() => setShowInviteForm(true)}>+ Invite brother</button>
       </div>
 
