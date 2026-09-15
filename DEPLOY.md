@@ -235,3 +235,142 @@ Notes:
 3. On any other device, signs in with email + that password. "Forgot
    password" on the sign-in page sends a reset link (4b template) that works
    the same way.
+
+---
+
+## 5. Recruitment portal — recruitment.wsuakpsi.com
+
+How the existing portals are actually hosted (discovered 2026-09-15, not
+S3/CloudFront by hand): **AWS Amplify Hosting, region `us-east-2`**, one
+Amplify app per portal, both connected to `github.com/wsuakpsi/akpsi-portal`
+and auto-building the `main` branch on every push. The portals differ only
+by the `VITE_PORTAL` env var set on each app. DNS for `wsuakpsi.com` is a
+Route 53 hosted zone in the same AWS account, so Amplify wires subdomains
+itself.
+
+| App | Amplify app id | Domain | `VITE_PORTAL` |
+|---|---|---|---|
+| akpsi-portal | `d2s8e30x9bjue7` | eboard.wsuakpsi.com | `eboard` |
+| akpsi-portal-brother | `d2pq2ttvw9cyox` | brother.wsuakpsi.com | `brother` |
+| _(new)_ | — | recruitment.wsuakpsi.com | `recruitment` |
+
+**Important consequence:** pushing to `main` redeploys *all* portals. The
+recruitment code is gated on `VITE_PORTAL`, so it's inert in the other two
+builds, but a broken build on `main` breaks everything.
+
+### 5a. Push the code
+
+Everything for the recruitment portal is on `main` locally but must be
+pushed for Amplify to see it. Check `src/config/recruitment.js` first —
+`APPLICATIONS_OPEN` should be `false` unless applications are open today.
+
+```bash
+git push origin main
+```
+
+### 5b. Create the Amplify app (console — needs the GitHub connection)
+
+1. AWS Console → **Amplify** → region **us-east-2 (Ohio)** → **Create new
+   app** → **GitHub**.
+2. Pick `wsuakpsi/akpsi-portal`, branch `main`. (The Amplify GitHub App is
+   already installed on the org for the other two apps.)
+3. App name: `akpsi-portal-recruitment`. Leave the build settings as
+   detected — it should match the other apps:
+   ```yaml
+   version: 1
+   frontend:
+     phases:
+       preBuild:
+         commands:
+           - npm ci --cache .npm --prefer-offline
+       build:
+         commands:
+           - npm run build
+     artifacts:
+       baseDirectory: dist
+       files:
+         - '**/*'
+     cache:
+       paths:
+         - .npm/**/*
+   ```
+4. Under **Advanced settings → Environment variables**, add:
+
+   | Key | Value |
+   |---|---|
+   | `VITE_PORTAL` | `recruitment` |
+   | `VITE_SUPABASE_URL` | same value as the other apps |
+   | `VITE_SUPABASE_ANON_KEY` | same value as the other apps |
+   | `VITE_RUSH_SHEETS_SYNC_URL` | `https://xtaxg5inaa.execute-api.us-east-1.amazonaws.com/sync-rush-sheets` (only exists after 5d; the Sync button hides itself until this is set) |
+
+   None of the other `VITE_*_URL` vars are needed — the recruitment portal
+   only calls one Lambda.
+5. **Save and deploy.** First build takes ~2–3 minutes.
+6. **App settings → Rewrites and redirects** → add the SPA rule the other
+   apps have, or `/login` will 404 on a hard refresh:
+   `Source /<*>` → `Target /index.html` → Type `404 (Rewrite)`.
+
+Steps 4 and 6 can also be done from the CLI once the app exists — see 5c.
+
+### 5c. Custom domain
+
+**Hosting → Custom domains → Add domain** → `wsuakpsi.com` (it's in Route 53
+in this account, so it's offered) → subdomain prefix `recruitment` → branch
+`main`. Amplify creates the CNAME + ACM cert; usually live in 5–15 minutes.
+
+CLI equivalent (after 5b, with the new app id):
+
+```bash
+aws amplify create-domain-association --region us-east-2 \
+  --app-id <NEW_APP_ID> --domain-name wsuakpsi.com \
+  --sub-domain-settings prefix=recruitment,branchName=main
+```
+
+Then in **Supabase → Authentication → URL Configuration → Redirect URLs**
+add `https://recruitment.wsuakpsi.com/reset-password` and
+`http://localhost:5181/**` (so password resets from the recruitment login
+page land on the right domain).
+
+### 5d. Deploy the Sheets-sync Lambda + finish Sheets for every portal
+
+`SyncRushApplicationsToSheetsFunction` is in `lambdas/template.yaml` but
+hasn't been deployed. Sheets sync for the brother/E-Board portals was also
+never finished (`GoogleSheetsSpreadsheetId` is still blank in the deployed
+stack). One `sam deploy` covers both.
+
+1. Do section **2** steps 1–5 once if you haven't (service account JSON +
+   share the sheet with it). **Create two spreadsheets**: the chapter
+   points/attendance one, and a separate one for applications. Share both
+   with the service account (Editor).
+2. Deploy, guided so every existing parameter keeps its current value and
+   you only type the new ones:
+   ```bash
+   cd lambdas
+   sam build
+   sam deploy --guided
+   ```
+   When prompted:
+   - `GoogleServiceAccountJson` → paste the JSON **as one line**
+     (`cat key.json | tr -d '\n' | pbcopy` on a Mac copies it ready to paste)
+   - `GoogleSheetsSpreadsheetId` → the points/attendance spreadsheet id
+   - `RushApplicationsSpreadsheetId` → the applications spreadsheet id
+   - `EnableNightlySync` → `true`
+   - everything else → press Enter to keep the saved value
+3. The output `RouteMap` now includes `/sync-rush-sheets`. Add the full URL
+   as `VITE_RUSH_SHEETS_SYNC_URL` on the recruitment Amplify app (5b step 4)
+   and redeploy it (**Redeploy this version** in the console is enough — env
+   vars are read at build time).
+
+After this: the E-Board portal's **Sheets sync** page and the recruitment
+**Sync to Google Sheets** button both work, and the nightly cron writes the
+points sheet at 07:00 UTC.
+
+### 5e. Verify
+
+- `https://recruitment.wsuakpsi.com/` → closed page (or the form if
+  `APPLICATIONS_OPEN` is true).
+- `https://recruitment.wsuakpsi.com/login` → sign in → candidate list.
+- As E-Board: click **Sync to Google Sheets** → an `Applications` tab appears
+  in the applications spreadsheet.
+- Run `npm run unseed:recruitment` locally to remove the test candidates
+  before real applications open.

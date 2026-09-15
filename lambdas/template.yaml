@@ -26,6 +26,10 @@ Parameters:
     Type: String
     Default: ''
     Description: Target spreadsheet ID. Leave blank to skip Sheets sync for now.
+  RushApplicationsSpreadsheetId:
+    Type: String
+    Default: ''
+    Description: Separate spreadsheet ID for the recruitment portal's applications export. Same Google service account as GoogleServiceAccountJson. Leave blank to skip.
   GoogleCalendarId:
     Type: String
     Default: ''
@@ -62,6 +66,7 @@ Globals:
         QR_CHECKIN_JWT_SECRET: !Ref QrCheckinJwtSecret
         GOOGLE_SERVICE_ACCOUNT_JSON: !Ref GoogleServiceAccountJson
         GOOGLE_SHEETS_SPREADSHEET_ID: !Ref GoogleSheetsSpreadsheetId
+        RUSH_APPLICATIONS_SPREADSHEET_ID: !Ref RushApplicationsSpreadsheetId
         GOOGLE_CALENDAR_ID: !Ref GoogleCalendarId
         BROTHER_PORTAL_URL: !Ref BrotherPortalUrl
 
@@ -173,6 +178,14 @@ Resources:
       Events:
         Api: { Type: HttpApi, Properties: { Path: /sync-sheets, Method: POST } }
 
+  SyncRushApplicationsToSheetsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/syncRushApplicationsToSheets.handler
+      Timeout: 29 # under the 30s API Gateway ceiling, see CalculateEndOfSemesterStandingFunction
+      Events:
+        Api: { Type: HttpApi, Properties: { Path: /sync-rush-sheets, Method: POST } }
+
   NightlySheetsSyncFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -204,5 +217,6 @@ Outputs:
       /remove-attendance=VITE_REMOVE_ATTENDANCE_URL,
       /record-late-cancel=VITE_RECORD_LATE_CANCEL_URL,
       /sync-sheets=VITE_SHEETS_SYNC_URL,
+      /sync-rush-sheets=VITE_RUSH_SHEETS_SYNC_URL,
       /add-to-calendar=VITE_ADD_TO_CALENDAR_URL,
       /invite-brother=VITE_INVITE_BROTHER_URL

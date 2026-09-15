@@ -8,8 +8,10 @@ import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
 import ResetPassword from './pages/ResetPassword'
 import Join from './pages/Join'
+import Apply from './pages/Apply'
 import BrotherRouter from './portals/brother'
 import EboardRouter from './portals/eboard'
+import RecruitmentRouter from './portals/recruitment'
 import CheckInQrPage from './portals/eboard/pages/CheckInQrPage'
 import { AppSkeleton } from './components/Skeleton'
 
@@ -143,12 +145,22 @@ export default function App() {
   } else if (session && !profile && profileError) {
     content = <ProfileSetupError error={profileError} />
   } else if (!session || !profile) {
-    content = (
-      <Routes>
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="*" element={<Login />} />
-      </Routes>
-    )
+    // The recruitment portal is public by default — an applicant with no
+    // account lands straight on the form, not a login wall. Brothers/E-Board
+    // sign in at /login to reach the deliberation dashboard below.
+    content =
+      PORTAL === 'recruitment' ? (
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="*" element={<Apply />} />
+        </Routes>
+      ) : (
+        <Routes>
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="*" element={<Login />} />
+        </Routes>
+      )
   } else if (profile.status === 'suspended') {
     content = <Suspended />
   } else if (
@@ -165,6 +177,14 @@ export default function App() {
       <Routes>
         <Route path="/eboard/checkin-qr" element={<CheckInQrPage />} />
         <Route path="/*" element={<EboardRouter profile={profile} />} />
+      </Routes>
+    )
+  } else if (PORTAL === 'recruitment') {
+    // Every signed-in member deliberates, regardless of role — only the
+    // final accept/reject/waitlist decision is gated to E-Board inside it.
+    content = (
+      <Routes>
+        <Route path="/*" element={<RecruitmentRouter profile={profile} />} />
       </Routes>
     )
   } else {

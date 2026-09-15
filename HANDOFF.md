@@ -31,6 +31,25 @@ A dedicated AKPsi AWS account exists. An IAM admin user has been created with an
 
 ---
 
+## Recruitment portal (new)
+
+A third portal, `VITE_PORTAL=recruitment` (`npm run dev:recruitment`,
+intended for `recruitment.wsuakpsi.com`), replaces the old Google
+Form + separate resume-reviewer/Slido setup:
+
+- Public, unauthenticated applicants submit at `/` (`src/pages/Apply.jsx`) —
+  fields match the chapter's Google Form exactly. Files (resume, cover
+  letter, headshot) go to the private `rush-applications` Storage bucket.
+- Any signed-in member (any role) deliberates at `/recruitment`
+  (`src/portals/recruitment/`) — candidate list with search, a detail page
+  with live-updating Yes/No/Maybe votes and a comment thread (Supabase
+  Realtime), and an E-Board-only accept/reject/waitlist decision.
+- Schema: migrations `0026_recruitment.sql` / `0027_recruitment_realtime.sql`
+  — both already pushed to the live project.
+- Sheets export: `lambdas/src/syncRushApplicationsToSheets.js`, written but
+  **not deployed** — see HUMAN_TASKS.md section 6 for what's left (hosting,
+  a new Google Sheet, `sam deploy`).
+
 ## What's still open
 
 ### 1. End-to-end testing & edge cases

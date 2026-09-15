@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "dev:eboard": "VITE_PORTAL=eboard vite --port 5180",
+    "dev:recruitment": "VITE_PORTAL=recruitment vite --port 5181",
     "build": "vite build",
     "preview": "vite preview",
-    "seed:eboard": "node --env-file=.env.local scripts/seed-eboard.mjs"
+    "seed:eboard": "node --env-file=.env.local scripts/seed-eboard.mjs",
+    "seed:recruitment": "node --env-file=.env.local scripts/seed-recruitment.mjs",
+    "unseed:recruitment": "node --env-file=.env.local scripts/unseed-recruitment.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

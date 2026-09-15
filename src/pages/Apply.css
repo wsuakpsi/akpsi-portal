@@ -1,0 +1,431 @@
+/* Public rush application form — recruitment.wsuakpsi.com */
+
+.apply-root {
+  --navy: #0f1a2e;
+  --gold: #c9a84c;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --border: #e4e3df;
+  --border-strong: #cfcec9;
+  --text: #1a1a1a;
+  --muted: #6b6b66;
+  --faint: #9a9a95;
+  --danger: #b3261e;
+
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 4rem;
+}
+
+.apply-root * {
+  box-sizing: border-box;
+}
+
+/* ---------- Header ---------- */
+
+.apply-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.apply-header-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.apply-header-crest {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.apply-header-crest svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+
+.apply-header-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.apply-header-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ---------- Content column ---------- */
+
+.apply-content {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 0;
+}
+
+.apply-intro {
+  margin-bottom: 2rem;
+}
+
+.apply-intro h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.6rem;
+  line-height: 1.25;
+}
+
+.apply-intro p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 56ch;
+}
+
+.apply-notice {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--gold);
+  background: var(--surface);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ---------- Sections ---------- */
+
+.apply-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.6rem 1.6rem 1.7rem;
+  margin-bottom: 1.1rem;
+}
+
+.apply-section-head {
+  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.apply-section-head h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.apply-section-head p {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.apply-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.apply-row:last-child {
+  margin-bottom: 0;
+}
+
+.apply-row .apply-field {
+  margin-bottom: 0;
+}
+
+@media (max-width: 560px) {
+  .apply-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Fields ---------- */
+
+.apply-field {
+  margin-bottom: 1.2rem;
+}
+
+.apply-field:last-child {
+  margin-bottom: 0;
+}
+
+.apply-fieldset {
+  border: none;
+  padding: 0;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0;
+}
+
+.apply-field > label,
+.apply-field legend {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.45rem;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.apply-req {
+  color: var(--danger);
+  margin-left: 0.15rem;
+}
+
+.apply-hint {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--faint);
+}
+
+.apply-field input[type="text"],
+.apply-field input[type="email"],
+.apply-field textarea {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.apply-field textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.5;
+}
+
+.apply-field input:focus,
+.apply-field textarea:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(15, 26, 46, 0.1);
+}
+
+.apply-field input::placeholder,
+.apply-field textarea::placeholder {
+  color: var(--faint);
+}
+
+/* Chip-style choice groups */
+
+.apply-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.apply-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.95rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.86rem;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.apply-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.apply-chip:hover {
+  border-color: var(--navy);
+}
+
+.apply-chip.selected {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+
+.apply-chip:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px rgba(15, 26, 46, 0.15);
+}
+
+/* File pickers */
+
+.apply-file {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.apply-file.has-file {
+  border-style: solid;
+  background: var(--surface);
+}
+
+.apply-file input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.apply-file-btn {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.apply-file-btn:hover {
+  border-color: var(--navy);
+}
+
+.apply-file-name {
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.apply-file.has-file .apply-file-name {
+  color: var(--text);
+}
+
+/* Policy statement */
+
+.apply-policy {
+  padding: 0.9rem 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 1.2rem;
+}
+
+/* ---------- Feedback + submit ---------- */
+
+.apply-error {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #f1c3bf;
+  background: #fdf1f0;
+  color: var(--danger);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.apply-submit {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  background: var(--navy);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.apply-submit:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.apply-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.apply-footer,
+.apply-success .apply-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--faint);
+}
+
+.apply-footer a {
+  color: var(--muted);
+}
+
+/* ---------- Success ---------- */
+
+.apply-success {
+  max-width: 480px;
+  margin: 5rem auto 0;
+  padding: 0 1.25rem;
+  text-align: center;
+}
+
+.apply-success-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e7f3ec;
+  color: #1e7d4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.2rem;
+}
+
+.apply-success-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.apply-success h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.6rem;
+}
+
+.apply-success p {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apply-root * {
+    transition-duration: 0.01ms !important;
+  }
+}

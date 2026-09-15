@@ -115,7 +115,28 @@ newest/least-verified code first:
       how/when E-Board actually populates it for the current roster (there's
       no bulk-import tool, just the one-at-a-time field on Brother Detail).
 
-## 6. Real infrastructure hygiene (lower priority, not blocking)
+## 6. Recruitment portal (new — public applications + deliberation)
+
+Schema is live (migrations `0026`/`0027`), and the frontend
+(`VITE_PORTAL=recruitment`, `npm run dev:recruitment`) works against it
+already — anonymous applicants can submit at `/`, and any signed-in member
+can vote/comment/deliberate at `/recruitment`. What's still needed:
+
+- [ ] **Host it** at `recruitment.wsuakpsi.com` — a third **Amplify** app
+      (us-east-2) on the same repo/branch as brother and eboard, with
+      `VITE_PORTAL=recruitment`. Exact steps: `DEPLOY.md` section 5.
+- [ ] **Finish Google Sheets for all portals** — the service account was
+      never created, so Sheets sync is broken in the E-Board portal too.
+      One `sam deploy --guided` fixes both and deploys the new
+      `SyncRushApplicationsToSheetsFunction`: `DEPLOY.md` section 5d.
+- [ ] **Click-test once deployed**: submit a real application through the
+      public form, confirm it shows up in the deliberation dashboard, vote
+      as two different members and check the tally updates live for the
+      E-Board one without a refresh (Realtime), post and delete a comment as
+      E-Board, and confirm a brother account can't see the tally, the
+      decision, or the comment box (they can read notes, not write them).
+
+## 7. Real infrastructure hygiene (lower priority, not blocking)
 
 - [ ] Three moderate/high npm vulnerabilities were surfaced in Phase 4
       (`googleapis`→`uuid`, `vite`→`esbuild`, `react-router`), all requiring

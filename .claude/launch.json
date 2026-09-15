@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "recruitment-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:recruitment"],
+      "port": 5181
     }
   ]
 }
