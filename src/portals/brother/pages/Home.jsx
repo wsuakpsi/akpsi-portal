@@ -11,6 +11,7 @@ export default function Home({ profile }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [pointTotals, setPointTotals] = useState({})
+  const [grandTotal, setGrandTotal] = useState(0)
   const [upcomingEvents, setUpcomingEvents] = useState([])
   const [recentAttendance, setRecentAttendance] = useState([])
 
@@ -26,6 +27,7 @@ export default function Home({ profile }) {
         if (!semester) {
           if (!cancelled) {
             setPointTotals({})
+            setGrandTotal(0)
             setUpcomingEvents([])
             setRecentAttendance([])
             setLoading(false)
@@ -59,10 +61,12 @@ export default function Home({ profile }) {
 
         const totals = {}
         for (const cat of POINT_CATEGORIES) totals[cat] = 0
+        let total = 0
         for (const row of ledgerRes.data) {
           if (POINT_CATEGORIES.includes(row.category)) {
             totals[row.category] += row.delta
           }
+          total += row.delta
         }
 
         const recentMeetings = (attendanceRes.data || [])
@@ -72,6 +76,7 @@ export default function Home({ profile }) {
 
         if (!cancelled) {
           setPointTotals(totals)
+          setGrandTotal(total)
           setUpcomingEvents(eventsRes.data || [])
           setRecentAttendance(recentMeetings)
         }
@@ -111,9 +116,7 @@ export default function Home({ profile }) {
         <div className="standing-card">
           <div className="standing-row">
             <span className="standing-label">Points this semester</span>
-            <span className="standing-total">
-              {POINT_CATEGORIES.reduce((sum, cat) => sum + (pointTotals[cat] ?? 0), 0)} pts
-            </span>
+            <span className="standing-total">{grandTotal} pts</span>
           </div>
           {POINT_CATEGORIES.map((cat) => (
             <div className="progress-row" key={cat}>
