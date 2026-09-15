@@ -5,7 +5,7 @@ import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
 import Topbar from '../components/Topbar'
 import { BrotherPageSkeleton } from '../../../components/Skeleton'
 
-const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social']
+const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra']
 
 export default function Home({ profile }) {
   const [loading, setLoading] = useState(true)
