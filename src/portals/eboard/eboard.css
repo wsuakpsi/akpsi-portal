@@ -425,7 +425,17 @@ button {
   cursor: pointer;
 }
 
-.btn {
+/* Scoped under .eboard-app: App.jsx statically imports every portal's
+   router (so its own build can pick one at runtime via VITE_PORTAL), which
+   means brother.css and recruitment.css end up in the same bundle and also
+   define a bare `.btn`. Same specificity + later source order let their
+   rules win for properties this file didn't re-declare per state (e.g. a
+   `background: var(--navy)` from recruitment.css, where --navy is never
+   defined here, resolves to transparent) — buttons then only looked right
+   on states this file *did* still win, like :hover. Scoping every rule
+   under .eboard-app raises specificity so this file always wins inside the
+   E-Board portal, regardless of what else is bundled. */
+.eboard-app .btn {
   border: none;
   border-radius: 8px;
   padding: 0.55rem 1rem;
@@ -435,46 +445,46 @@ button {
   color: #fff;
 }
 
-.btn:hover {
+.eboard-app .btn:hover {
   background: var(--navy-700);
 }
 
-.btn.secondary {
+.eboard-app .btn.secondary {
   background: #fff;
   color: var(--text);
   border: 1px solid #d8d8d4;
 }
 
-.btn.secondary:hover {
+.eboard-app .btn.secondary:hover {
   background: #f6f6f4;
 }
 
-.btn.gold {
+.eboard-app .btn.gold {
   background: var(--gold);
   color: #2b2200;
 }
 
-.btn.gold:hover {
+.eboard-app .btn.gold:hover {
   background: var(--gold-dark);
   color: #fff;
 }
 
-.btn.danger {
+.eboard-app .btn.danger {
   background: #fff;
   color: #b91c1c;
   border: 1px solid #f3b4b4;
 }
 
-.btn.danger:hover {
+.eboard-app .btn.danger:hover {
   background: #fef2f2;
 }
 
-.btn.small {
+.eboard-app .btn.small {
   padding: 0.32rem 0.65rem;
   font-size: 0.78rem;
 }
 
-.btn:disabled {
+.eboard-app .btn:disabled {
   opacity: 0.5;
   cursor: default;
 }
@@ -611,17 +621,35 @@ button {
   overflow-y: auto;
 }
 
-/* Keeps a form's submit/cancel buttons in view even when the fields above
-   overflow the modal's max-height and require scrolling — without this,
-   the buttons scroll out of sight along with the rest of the form. */
+/* Long forms (e.g. "Add event") need the field list to scroll internally
+   while the heading and the submit/cancel buttons stay put — otherwise the
+   buttons get pushed below the modal's max-height and are unreachable.
+   Opt in with the `has-fixed-footer` modifier; plain modals keep the
+   default whole-modal scroll above. */
+.modal.has-fixed-footer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal.has-fixed-footer form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.modal-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .modal-actions {
   display: flex;
   gap: 0.5rem;
-  position: sticky;
-  bottom: 0;
-  margin: 0.75rem -1.5rem -1.5rem;
-  padding: 0.75rem 1.5rem 1.5rem;
-  background: #fff;
+  flex-shrink: 0;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--border);
 }
 
@@ -1386,11 +1414,11 @@ button {
   }
 
   /* Bigger tap targets */
-  .btn {
+  .eboard-app .btn {
     padding: 0.6rem 1rem;
   }
 
-  .btn.small {
+  .eboard-app .btn.small {
     padding: 0.45rem 0.75rem;
   }
 }

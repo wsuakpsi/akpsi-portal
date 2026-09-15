@@ -75,64 +75,66 @@ function AddEventForm({ semester, onClose, onAdded }) {
   }
 
   return (
-    <Modal onClose={onClose} labelledBy="add-event-title">
+    <Modal onClose={onClose} labelledBy="add-event-title" className="modal has-fixed-footer">
       <h2 id="add-event-title">Add event</h2>
       <form onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="name">Name</label>
-          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div className="form-field">
-          <label htmlFor="category">Category</label>
-          <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-field">
-          <label htmlFor="points_value">Points value</label>
-          <input
-            id="points_value"
-            type="number"
-            min="0"
-            value={pointsValue}
-            onChange={(e) => setPointsValue(e.target.value)}
-          />
-        </div>
-        <div className="form-field">
-          <label htmlFor="location">Location</label>
-          <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
-        </div>
-        <div className="form-field">
-          <label htmlFor="starts_at">Starts at</label>
-          <input
-            id="starts_at"
-            type="datetime-local"
-            value={startsAt}
-            onChange={(e) => setStartsAt(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-field">
-          <label htmlFor="duration">Duration (minutes)</label>
-          <input
-            id="duration"
-            type="number"
-            min="15"
-            step="15"
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(e.target.value)}
-          />
-        </div>
-        <div className="form-field checkbox">
-          <input
-            id="is_required"
-            type="checkbox"
-            checked={isRequired}
-            onChange={(e) => setIsRequired(e.target.checked)}
-          />
-          <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
+        <div className="modal-body">
+          <div className="form-field">
+            <label htmlFor="name">Name</label>
+            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="form-field">
+            <label htmlFor="category">Category</label>
+            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="points_value">Points value</label>
+            <input
+              id="points_value"
+              type="number"
+              min="0"
+              value={pointsValue}
+              onChange={(e) => setPointsValue(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="location">Location</label>
+            <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
+          <div className="form-field">
+            <label htmlFor="starts_at">Starts at</label>
+            <input
+              id="starts_at"
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="duration">Duration (minutes)</label>
+            <input
+              id="duration"
+              type="number"
+              min="15"
+              step="15"
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+            />
+          </div>
+          <div className="form-field checkbox">
+            <input
+              id="is_required"
+              type="checkbox"
+              checked={isRequired}
+              onChange={(e) => setIsRequired(e.target.checked)}
+            />
+            <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
+          </div>
         </div>
         <div className="modal-actions">
           <button type="submit" className="btn" disabled={submitting}>
