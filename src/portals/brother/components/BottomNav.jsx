@@ -27,12 +27,13 @@ function IconAttendance() {
   )
 }
 
-function IconLeaderboard() {
+function IconRoster() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="18" y="3" width="4" height="18" rx="1"/>
-      <rect x="10" y="8" width="4" height="13" rx="1"/>
-      <rect x="2" y="13" width="4" height="8" rx="1"/>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   )
 }
@@ -41,7 +42,7 @@ const links = [
   { to: '/brother',            label: 'Home',        Icon: IconHome,        end: true },
   { to: '/brother/events',     label: 'Events',      Icon: IconEvents },
   { to: '/brother/attendance', label: 'Attendance',  Icon: IconAttendance },
-  { to: '/brother/leaderboard',label: 'Leaderboard', Icon: IconLeaderboard },
+  { to: '/brother/roster',     label: 'Roster',      Icon: IconRoster },
 ]
 
 export default function BottomNav() {

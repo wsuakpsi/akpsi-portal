@@ -104,19 +104,24 @@
   border-radius: 6px;
 }
 
-.status-badge.present, .status-badge.going, .status-badge.attended, .status-badge.approved {
+.status-badge.present, .status-badge.going, .status-badge.attended, .status-badge.approved, .status-badge.active {
   background: #dcfce7;
   color: #166534;
 }
 
-.status-badge.excused, .status-badge.pending {
+.status-badge.excused, .status-badge.pending, .status-badge.probation {
   background: #fef3c7;
   color: #92400e;
 }
 
-.status-badge.unexcused, .status-badge.missed, .status-badge.denied {
+.status-badge.unexcused, .status-badge.missed, .status-badge.denied, .status-badge.suspended {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.status-badge.alumni, .status-badge.archived {
+  background: #e3e3e6;
+  color: #444;
 }
 
 button {
@@ -432,6 +437,82 @@ button {
   font-size: 0.75rem;
   font-weight: 600;
   object-fit: cover;
+}
+
+.avatar.lg {
+  width: 72px;
+  height: 72px;
+  font-size: 1.3rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: #666;
+  text-decoration: none;
+}
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid #e3e3e6;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.roster-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.roster-row-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.roster-row-you {
+  font-weight: 400;
+  color: #999;
+}
+
+.roster-row-sub {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.1rem;
+}
+
+.roster-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.roster-detail-table th {
+  text-align: left;
+  color: #666;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem 0.4rem 0;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.roster-detail-table td {
+  font-size: 0.85rem;
+  padding: 0.4rem 0;
+}
+
+.roster-detail-table tr {
+  border-bottom: 1px solid #f0f0ee;
+}
+
+.roster-detail-table tr:last-child {
+  border-bottom: none;
 }
 
 .standing-card {
