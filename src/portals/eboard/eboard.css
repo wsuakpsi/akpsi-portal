@@ -177,7 +177,7 @@
   max-width: 1400px;
 }
 
-.page-header {
+.eboard-app .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -190,7 +190,7 @@
   margin: 0;
 }
 
-.page-subtitle {
+.eboard-app .page-subtitle {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-top: 0.2rem;
@@ -226,7 +226,7 @@
   margin: 0 0 1rem;
 }
 
-.card {
+.eboard-app .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -305,7 +305,7 @@
   margin-bottom: 0;
 }
 
-.detail-layout {
+.eboard-app .detail-layout {
   display: grid;
   grid-template-columns: 340px 1fr;
   gap: 1.25rem;
@@ -358,7 +358,7 @@ a.row-link:hover {
   gap: 0.65rem;
 }
 
-.avatar {
+.eboard-app .avatar {
   width: 34px;
   height: 34px;
   border-radius: 999px;
@@ -373,7 +373,7 @@ a.row-link:hover {
   flex: 0 0 34px;
 }
 
-.avatar.lg {
+.eboard-app .avatar.lg {
   width: 72px;
   height: 72px;
   font-size: 1.3rem;
@@ -491,7 +491,7 @@ button {
 
 /* ---------- Pills / badges ---------- */
 
-.pill {
+.eboard-app .pill {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 600;
@@ -503,19 +503,19 @@ button {
   color: #333;
 }
 
-.pill.professional { background: #dbeafe; color: #1e40af; }
-.pill.service { background: #dcfce7; color: #166534; }
-.pill.fundraising { background: #fef3c7; color: #92400e; }
-.pill.social { background: #fce7f3; color: #9d174d; }
-.pill.meeting { background: #e0e7ff; color: #3730a3; }
-.pill.rush { background: #ede9fe; color: #5b21b6; }
-.pill.extra { background: #f1f5f9; color: #334155; }
+.eboard-app .pill.professional { background: #dbeafe; color: #1e40af; }
+.eboard-app .pill.service { background: #dcfce7; color: #166534; }
+.eboard-app .pill.fundraising { background: #fef3c7; color: #92400e; }
+.eboard-app .pill.social { background: #fce7f3; color: #9d174d; }
+.eboard-app .pill.meeting { background: #e0e7ff; color: #3730a3; }
+.eboard-app .pill.rush { background: #ede9fe; color: #5b21b6; }
+.eboard-app .pill.extra { background: #f1f5f9; color: #334155; }
 
-.pill.role-eboard { background: var(--navy-900); color: #fff; text-transform: none; font-weight: 700; }
-.pill.role-committee-head { background: #92400e; color: #fff; text-transform: none; font-weight: 700; }
-.pill.role-brother { background: #eceae4; color: #555; text-transform: none; }
+.eboard-app .pill.role-eboard { background: var(--navy-900); color: #fff; text-transform: none; font-weight: 700; }
+.eboard-app .pill.role-committee-head { background: #92400e; color: #fff; text-transform: none; font-weight: 700; }
+.eboard-app .pill.role-brother { background: #eceae4; color: #555; text-transform: none; }
 
-.status-badge {
+.eboard-app .status-badge {
   display: inline-block;
   font-size: 0.74rem;
   font-weight: 600;
@@ -523,31 +523,31 @@ button {
   border-radius: 999px;
 }
 
-.status-badge.present, .status-badge.going, .status-badge.attended,
-.status-badge.approved, .status-badge.active, .status-badge.completed,
-.status-badge.good {
+.eboard-app .status-badge.present, .eboard-app .status-badge.going, .eboard-app .status-badge.attended,
+.eboard-app .status-badge.approved, .eboard-app .status-badge.active, .eboard-app .status-badge.completed,
+.eboard-app .status-badge.good {
   background: #dcfce7;
   color: #166534;
 }
 
-.status-badge.excused, .status-badge.pending, .status-badge.scheduled,
-.status-badge.probation, .status-badge.required {
+.eboard-app .status-badge.excused, .eboard-app .status-badge.pending, .eboard-app .status-badge.scheduled,
+.eboard-app .status-badge.probation, .eboard-app .status-badge.required {
   background: #fef3c7;
   color: #92400e;
 }
 
-.status-badge.unexcused, .status-badge.missed, .status-badge.denied,
-.status-badge.cancelled, .status-badge.suspended, .status-badge.over-limit {
+.eboard-app .status-badge.unexcused, .eboard-app .status-badge.missed, .eboard-app .status-badge.denied,
+.eboard-app .status-badge.cancelled, .eboard-app .status-badge.suspended, .eboard-app .status-badge.over-limit {
   background: #fee2e2;
   color: #991b1b;
 }
 
-.status-badge.lower, .status-badge.at-limit {
+.eboard-app .status-badge.lower, .eboard-app .status-badge.at-limit {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.status-badge.standard, .status-badge.voided {
+.eboard-app .status-badge.standard, .eboard-app .status-badge.voided {
   background: #eceae4;
   color: #555;
 }
@@ -562,13 +562,13 @@ button {
   color: #991b1b;
 }
 
-.empty-state {
+.eboard-app .empty-state {
   color: #888;
   font-size: 0.9rem;
   padding: 1rem 0;
 }
 
-.error-text {
+.eboard-app .error-text {
   color: #b91c1c;
   font-size: 0.85rem;
   margin: 0.5rem 0;
@@ -670,7 +670,7 @@ button {
   min-width: 0;
 }
 
-.back-link {
+.eboard-app .back-link {
   display: inline-block;
   margin-bottom: 1rem;
   font-size: 0.85rem;
@@ -678,7 +678,7 @@ button {
   text-decoration: none;
 }
 
-.back-link:hover {
+.eboard-app .back-link:hover {
   text-decoration: underline;
 }
 
