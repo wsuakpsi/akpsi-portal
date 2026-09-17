@@ -106,9 +106,10 @@ export default function CandidateDetail({ profile }) {
           getMyVote(id, profile.id),
           canSeeVoteResults ? getVoteTally(id) : Promise.resolve({ yes: 0, no: 0, maybe: 0 }),
           getComments(id),
-          // RLS hides this from non-E-Board entirely (see 0028) — comes back
-          // 'pending' for them regardless of the real decision.
-          isEboard ? getDecision(id) : Promise.resolve('pending'),
+          // RLS hides this from everyone but VP Membership/VP Internal/
+          // Secretary (see 0033) — comes back 'pending' for anyone else
+          // regardless of the real decision.
+          canSeeVoteResults ? getDecision(id) : Promise.resolve('pending'),
         ])
         if (cancelled) return
         setApplication(app)
@@ -210,7 +211,7 @@ export default function CandidateDetail({ profile }) {
   if (error) return <p className="error-text" role="alert">{error}</p>
   if (!application) return null
 
-  const votingClosed = isEboard && decision !== 'pending'
+  const votingClosed = canSeeVoteResults && decision !== 'pending'
 
   return (
     <div>
@@ -228,7 +229,7 @@ export default function CandidateDetail({ profile }) {
             )}
             <h1 className="detail-name">
               {application.full_name}
-              {isEboard && decision !== 'pending' && (
+              {canSeeVoteResults && decision !== 'pending' && (
                 <span className={`status-badge ${decision}`}>{decision}</span>
               )}
             </h1>
@@ -284,7 +285,7 @@ export default function CandidateDetail({ profile }) {
             </p>
           </div>
 
-          {isEboard && (
+          {canSeeVoteResults && (
             <div className="card">
               <h2 className="card-title">Decision</h2>
               <div className="decision-group">

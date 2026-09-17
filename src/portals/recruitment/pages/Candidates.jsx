@@ -36,14 +36,14 @@ export default function Candidates({ profile }) {
     setLoading(true)
     setError(null)
     try {
-      // Vote tallies are restricted to VP Membership/VP Internal/Secretary
-      // (voting is anonymous — see 0032) and decisions are E-Board-only;
-      // skip the request entirely rather than render an empty-but-present
-      // tally that could be misread as "nobody voted".
+      // Vote tallies and decisions are both restricted to VP Membership/VP
+      // Internal/Secretary (see 0032, 0033) — skip the request entirely
+      // rather than render an empty-but-present tally/badge that could be
+      // misread as "nobody voted" / "no decision".
       const [apps, voteTallies, decisionMap] = await Promise.all([
         listApplications(),
         canSeeVoteResults ? getVoteTallies() : Promise.resolve(new Map()),
-        isEboard ? getDecisions() : Promise.resolve(new Map()),
+        canSeeVoteResults ? getDecisions() : Promise.resolve(new Map()),
       ])
       setApplications(apps)
       setTallies(voteTallies)
@@ -136,15 +136,13 @@ export default function Candidates({ profile }) {
                   <div className="candidate-name">{app.full_name}</div>
                   <div className="candidate-meta">{app.standing} · {app.graduation_year}</div>
                 </div>
-                {isEboard && (
+                {canSeeVoteResults && (
                   <div className="candidate-foot">
-                    {canSeeVoteResults && (
-                      <div className="candidate-tally">
-                        <span className="yes">{t.yes} Y</span>
-                        <span className="no">{t.no} N</span>
-                        <span className="maybe">{t.maybe} M</span>
-                      </div>
-                    )}
+                    <div className="candidate-tally">
+                      <span className="yes">{t.yes} Y</span>
+                      <span className="no">{t.no} N</span>
+                      <span className="maybe">{t.maybe} M</span>
+                    </div>
                     {decision !== 'pending' && <span className={`status-badge ${decision}`}>{decision}</span>}
                   </div>
                 )}
