@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { initials } from '../../../lib/queries'
 import { callLambda } from '../../../lib/lambdas'
-import { listApplications, getVoteTallies, getDecisions, getSignedFileUrl } from '../../../lib/applications'
+import { canSeeResults, listApplications, getVoteTallies, getDecisions, getSignedFileUrl } from '../../../lib/applications'
 
 const RUSH_SHEETS_SYNC_URL = import.meta.env.VITE_RUSH_SHEETS_SYNC_URL
 
@@ -22,6 +22,7 @@ function SearchIcon() {
 
 export default function Candidates({ profile }) {
   const isEboard = profile.role === 'eboard'
+  const canSeeVoteResults = canSeeResults(profile)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [applications, setApplications] = useState([])
@@ -35,12 +36,13 @@ export default function Candidates({ profile }) {
     setLoading(true)
     setError(null)
     try {
-      // Vote tallies and decisions are E-Board-only — RLS returns them empty
-      // for anyone else, but skip the request entirely rather than render an
-      // empty-but-present tally that could be misread as "nobody voted".
+      // Vote tallies are restricted to VP Membership/VP Internal/Secretary
+      // (voting is anonymous — see 0032) and decisions are E-Board-only;
+      // skip the request entirely rather than render an empty-but-present
+      // tally that could be misread as "nobody voted".
       const [apps, voteTallies, decisionMap] = await Promise.all([
         listApplications(),
-        isEboard ? getVoteTallies() : Promise.resolve(new Map()),
+        canSeeVoteResults ? getVoteTallies() : Promise.resolve(new Map()),
         isEboard ? getDecisions() : Promise.resolve(new Map()),
       ])
       setApplications(apps)
@@ -136,11 +138,13 @@ export default function Candidates({ profile }) {
                 </div>
                 {isEboard && (
                   <div className="candidate-foot">
-                    <div className="candidate-tally">
-                      <span className="yes">{t.yes} Y</span>
-                      <span className="no">{t.no} N</span>
-                      <span className="maybe">{t.maybe} M</span>
-                    </div>
+                    {canSeeVoteResults && (
+                      <div className="candidate-tally">
+                        <span className="yes">{t.yes} Y</span>
+                        <span className="no">{t.no} N</span>
+                        <span className="maybe">{t.maybe} M</span>
+                      </div>
+                    )}
                     {decision !== 'pending' && <span className={`status-badge ${decision}`}>{decision}</span>}
                   </div>
                 )}

@@ -22,6 +22,12 @@ export const LATE_CLASS_DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursd
 
 export const VOTE_VALUES = ['yes', 'no', 'maybe']
 
+export const RESULTS_VIEWER_POSITIONS = ['VP Membership', 'VP Internal', 'Secretary']
+
+export function canSeeResults(profile) {
+  return profile.role === 'eboard' && RESULTS_VIEWER_POSITIONS.includes(profile.eboard_position)
+}
+
 const BUCKET = 'rush-applications'
 
 // Applicant is unauthenticated, so the id has to exist before the row does —
@@ -96,16 +102,18 @@ export async function listApplications() {
   return data || []
 }
 
-// RLS only lets a non-E-Board member see their own vote row, so a tally
-// built from this is only meaningful for E-Board — callers must not render
-// it for anyone else (see rush_votes_select, 0028).
+// Voting is anonymous — rush_application_votes RLS only ever returns the
+// caller's own row (see 0032). Tallies come from a SECURITY DEFINER RPC that
+// returns counts only (no member_id) and is itself gated to VP Membership /
+// VP Internal / Secretary (is_recruitment_results_viewer, 0032) — callers
+// must not invoke this for anyone else (see canSeeResults()).
 export async function getVoteTallies() {
-  const { data, error } = await supabase.from('rush_application_votes').select('application_id, vote')
+  const { data, error } = await supabase.rpc('get_all_vote_tallies')
   if (error) throw error
   const tallies = new Map()
   for (const row of data || []) {
     const t = tallies.get(row.application_id) || { yes: 0, no: 0, maybe: 0 }
-    t[row.vote] += 1
+    t[row.vote] = Number(row.votes_count)
     tallies.set(row.application_id, t)
   }
   return tallies
@@ -126,14 +134,40 @@ export async function getApplication(id) {
   return data
 }
 
-export async function getVotes(applicationId) {
+// Soft delete — the row stays in the DB but rush_applications_select (0032)
+// hides it from everyone from this point on. This is also how E-Board
+// manually lets someone reapply: the email is only unique among non-deleted
+// rows, so deleting the old application frees it up.
+export async function softDeleteApplication(applicationId, memberId) {
+  const { error } = await supabase
+    .from('rush_applications')
+    .update({ deleted_at: new Date().toISOString(), deleted_by: memberId })
+    .eq('id', applicationId)
+  if (error) throw error
+}
+
+// Own vote only — RLS never returns another member's row (voting is
+// anonymous, see 0032).
+export async function getMyVote(applicationId, memberId) {
   const { data, error } = await supabase
     .from('rush_application_votes')
-    .select('id, member_id, vote, members(full_name)')
+    .select('vote')
     .eq('application_id', applicationId)
-    .order('updated_at', { ascending: false })
+    .eq('member_id', memberId)
+    .maybeSingle()
   if (error) throw error
-  return data || []
+  return data?.vote || null
+}
+
+// Aggregate tally (counts only, no member identity) — gated server-side to
+// VP Membership / VP Internal / Secretary. Callers must not invoke this for
+// anyone else (see canSeeResults()).
+export async function getVoteTally(applicationId) {
+  const { data, error } = await supabase.rpc('get_vote_tally', { p_application_id: applicationId })
+  if (error) throw error
+  const tally = { yes: 0, no: 0, maybe: 0 }
+  for (const row of data || []) tally[row.vote] = Number(row.votes_count)
+  return tally
 }
 
 export async function getComments(applicationId) {

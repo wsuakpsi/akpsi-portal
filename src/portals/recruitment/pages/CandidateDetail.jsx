@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { initials } from '../../../lib/queries'
+import ConfirmModal from '../../../components/ConfirmModal'
 import {
+  canSeeResults,
   getApplication,
-  getVotes,
+  getMyVote,
+  getVoteTally,
   getComments,
   getDecision,
   getSignedFileUrl,
@@ -13,6 +16,7 @@ import {
   addComment,
   deleteComment,
   setDecision,
+  softDeleteApplication,
   subscribeToApplication,
 } from '../../../lib/applications'
 
@@ -54,20 +58,29 @@ function YesNo({ value, flagYes }) {
 
 export default function CandidateDetail({ profile }) {
   const isEboard = profile.role === 'eboard'
+  const canSeeVoteResults = canSeeResults(profile)
   const { id } = useParams()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [application, setApplication] = useState(null)
   const [decision, setDecisionState] = useState('pending')
-  const [votes, setVotes] = useState([])
+  const [myVote, setMyVote] = useState(null)
+  const [tally, setTally] = useState({ yes: 0, no: 0, maybe: 0 })
   const [comments, setComments] = useState([])
   const [files, setFiles] = useState({})
   const [commentText, setCommentText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   async function loadVotes() {
     try {
-      setVotes(await getVotes(id))
+      const [mine, t] = await Promise.all([
+        getMyVote(id, profile.id),
+        canSeeVoteResults ? getVoteTally(id) : Promise.resolve({ yes: 0, no: 0, maybe: 0 }),
+      ])
+      setMyVote(mine)
+      setTally(t)
     } catch (err) {
       toast.error(`Could not load votes: ${err.message}`)
     }
@@ -88,9 +101,10 @@ export default function CandidateDetail({ profile }) {
       setLoading(true)
       setError(null)
       try {
-        const [app, voteRows, commentRows, decisionValue] = await Promise.all([
+        const [app, mine, t, commentRows, decisionValue] = await Promise.all([
           getApplication(id),
-          getVotes(id),
+          getMyVote(id, profile.id),
+          canSeeVoteResults ? getVoteTally(id) : Promise.resolve({ yes: 0, no: 0, maybe: 0 }),
           getComments(id),
           // RLS hides this from non-E-Board entirely (see 0028) — comes back
           // 'pending' for them regardless of the real decision.
@@ -98,7 +112,8 @@ export default function CandidateDetail({ profile }) {
         ])
         if (cancelled) return
         setApplication(app)
-        setVotes(voteRows)
+        setMyVote(mine)
+        setTally(t)
         setComments(commentRows)
         setDecisionState(decisionValue)
 
@@ -125,12 +140,6 @@ export default function CandidateDetail({ profile }) {
       unsubscribe()
     }
   }, [id])
-
-  const myVote = votes.find((v) => v.member_id === profile.id)?.vote || null
-  const tally = votes.reduce(
-    (acc, v) => ({ ...acc, [v.vote]: acc[v.vote] + 1 }),
-    { yes: 0, no: 0, maybe: 0 },
-  )
 
   async function handleVote(vote) {
     setBusy(true)
@@ -185,12 +194,23 @@ export default function CandidateDetail({ profile }) {
     }
   }
 
+  async function handleDelete() {
+    setBusy(true)
+    try {
+      await softDeleteApplication(id, profile.id)
+      toast.success('Application deleted.')
+      navigate('/recruitment')
+    } catch (err) {
+      toast.error(`Could not delete application: ${err.message}`)
+      setBusy(false)
+    }
+  }
+
   if (loading) return <p className="empty-state">Loading…</p>
   if (error) return <p className="error-text" role="alert">{error}</p>
   if (!application) return null
 
-  const votersByValue = { yes: [], no: [], maybe: [] }
-  for (const v of votes) votersByValue[v.vote].push(v.members?.full_name || 'Unknown')
+  const votingClosed = isEboard && decision !== 'pending'
 
   return (
     <div>
@@ -227,11 +247,22 @@ export default function CandidateDetail({ profile }) {
                 <DocIcon /> Cover letter <span>PDF</span>
               </a>
             </div>
+            {isEboard && (
+              <button
+                type="button"
+                className="btn danger small"
+                style={{ marginTop: '0.9rem' }}
+                disabled={busy}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete application
+              </button>
+            )}
           </div>
 
           <div className="card">
             <h2 className="card-title">Your vote</h2>
-            {isEboard && (
+            {canSeeVoteResults && (
               <div className="vote-tallies">
                 <div className="vote-tally yes"><span className="vote-tally-count">{tally.yes}</span><span className="vote-tally-label">Yes</span></div>
                 <div className="vote-tally no"><span className="vote-tally-count">{tally.no}</span><span className="vote-tally-label">No</span></div>
@@ -239,21 +270,18 @@ export default function CandidateDetail({ profile }) {
               </div>
             )}
             <div className="vote-segment" role="group" aria-label="Cast your vote">
-              <button className={`vote-btn yes ${myVote === 'yes' ? 'active' : ''}`} disabled={busy} onClick={() => handleVote('yes')} aria-pressed={myVote === 'yes'}>Yes</button>
-              <button className={`vote-btn no ${myVote === 'no' ? 'active' : ''}`} disabled={busy} onClick={() => handleVote('no')} aria-pressed={myVote === 'no'}>No</button>
-              <button className={`vote-btn maybe ${myVote === 'maybe' ? 'active' : ''}`} disabled={busy} onClick={() => handleVote('maybe')} aria-pressed={myVote === 'maybe'}>Maybe</button>
+              <button className={`vote-btn yes ${myVote === 'yes' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('yes')} aria-pressed={myVote === 'yes'}>Yes</button>
+              <button className={`vote-btn no ${myVote === 'no' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('no')} aria-pressed={myVote === 'no'}>No</button>
+              <button className={`vote-btn maybe ${myVote === 'maybe' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('maybe')} aria-pressed={myVote === 'maybe'}>Maybe</button>
             </div>
             <p className="vote-help">
-              {myVote ? 'Select again to clear your vote.' : 'Votes can be changed at any time.'}
-              {!isEboard && ' Tallies are visible to E-Board only.'}
+              {votingClosed
+                ? 'Voting is closed — a decision has been made for this applicant.'
+                : myVote
+                  ? 'Select again to clear your vote. Voting is anonymous.'
+                  : 'Votes can be changed at any time. Voting is anonymous.'}
+              {!canSeeVoteResults && ' Tallies are visible to VP Membership, VP Internal, and Secretary only.'}
             </p>
-            {isEboard && votes.length > 0 && (
-              <div className="vote-voters">
-                {votersByValue.yes.length > 0 && <div><strong>Yes</strong>{votersByValue.yes.join(', ')}</div>}
-                {votersByValue.no.length > 0 && <div><strong>No</strong>{votersByValue.no.join(', ')}</div>}
-                {votersByValue.maybe.length > 0 && <div><strong>Maybe</strong>{votersByValue.maybe.join(', ')}</div>}
-              </div>
-            )}
           </div>
 
           {isEboard && (
@@ -351,6 +379,18 @@ export default function CandidateDetail({ profile }) {
           </div>
         </div>
       </div>
+
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Delete this application?"
+          body={`This will remove ${application.full_name}'s application, votes, and discussion from the deliberation dashboard. This cannot be undone from the app — the application will not be readable afterward.`}
+          confirmLabel="Delete application"
+          confirmClassName="btn danger"
+          busy={busy}
+          onConfirm={handleDelete}
+          onClose={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }

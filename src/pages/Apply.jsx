@@ -257,8 +257,17 @@ export default function Apply() {
       setDone(true)
       window.scrollTo({ top: 0 })
     } catch (err) {
-      setError(err.message)
-      toast.error(`Could not submit application: ${err.message}`)
+      // Postgres unique_violation (0032) — this email already has an
+      // application on file.
+      if (err.code === '23505') {
+        const message =
+          "An application with this email has already been submitted. Applications are only accepted once — if you believe this is a mistake, contact your recruitment chair."
+        setError(message)
+        toast.error(message)
+      } else {
+        setError(err.message)
+        toast.error(`Could not submit application: ${err.message}`)
+      }
     } finally {
       setSubmitting(false)
     }

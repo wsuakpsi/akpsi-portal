@@ -226,6 +226,17 @@
   font-size: 0.78rem;
 }
 
+.btn.danger {
+  background: #fff;
+  color: #b91c1c;
+  border: 1px solid #f3b4b4;
+}
+
+.btn.danger:hover:not(:disabled) {
+  opacity: 1;
+  background: #fef2f2;
+}
+
 /* ---------- Badges ---------- */
 
 .status-badge {
@@ -599,22 +610,6 @@
   margin: 0.65rem 0 0;
   font-size: 0.78rem;
   color: var(--faint);
-}
-
-.vote-voters {
-  margin-top: 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.vote-voters strong {
-  color: var(--text);
-  font-weight: 500;
-  margin-right: 0.25rem;
 }
 
 /* ---------- Decision ---------- */
