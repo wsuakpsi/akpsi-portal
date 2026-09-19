@@ -198,7 +198,7 @@ export default function CandidateDetail({ profile }) {
   async function handleDelete() {
     setBusy(true)
     try {
-      await softDeleteApplication(id, profile.id)
+      await softDeleteApplication(id)
       toast.success('Application deleted.')
       navigate('/recruitment')
     } catch (err) {

@@ -138,11 +138,8 @@ export async function getApplication(id) {
 // hides it from everyone from this point on. This is also how E-Board
 // manually lets someone reapply: the email is only unique among non-deleted
 // rows, so deleting the old application frees it up.
-export async function softDeleteApplication(applicationId, memberId) {
-  const { error } = await supabase
-    .from('rush_applications')
-    .update({ deleted_at: new Date().toISOString(), deleted_by: memberId })
-    .eq('id', applicationId)
+export async function softDeleteApplication(applicationId) {
+  const { error } = await supabase.rpc('soft_delete_rush_application', { p_application_id: applicationId })
   if (error) throw error
 }
 
