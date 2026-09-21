@@ -2,7 +2,8 @@ import { supabase } from './supabase'
 
 // Shared between the public Apply form and the recruitment portal's
 // deliberation dashboard. Field set + options mirror the chapter's Google
-// Form exactly — see supabase/migrations/0026_recruitment.sql.
+// Form exactly — see supabase/migrations/0026_recruitment.sql (graduation years
+// extended in 0036_recruitment_graduation_2030.sql).
 
 export const STANDING_OPTIONS = ['Freshman', 'Sophomore', 'Junior']
 
@@ -13,6 +14,8 @@ export const GRADUATION_YEAR_OPTIONS = [
   'December 2028',
   'May 2029',
   'December 2029',
+  'May 2030',
+  'December 2030',
 ]
 
 export const YES_NO_OPTIONS = ['Yes', 'No']
