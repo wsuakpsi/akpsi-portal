@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { initials } from '../../../lib/queries'
 import ConfirmModal from '../../../components/ConfirmModal'
+import { votingStarted } from '../../../config/recruitment'
 import {
   canSeeResults,
   getApplication,
@@ -211,7 +212,8 @@ export default function CandidateDetail({ profile }) {
   if (error) return <p className="error-text" role="alert">{error}</p>
   if (!application) return null
 
-  const votingClosed = canSeeVoteResults && decision !== 'pending'
+  const votingNotStarted = !votingStarted()
+  const votingClosed = (canSeeVoteResults && decision !== 'pending') || votingNotStarted
 
   return (
     <div>
@@ -276,11 +278,13 @@ export default function CandidateDetail({ profile }) {
               <button className={`vote-btn maybe ${myVote === 'maybe' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('maybe')} aria-pressed={myVote === 'maybe'}>Maybe</button>
             </div>
             <p className="vote-help">
-              {votingClosed
-                ? 'Voting is closed — a decision has been made for this applicant.'
-                : myVote
-                  ? 'Select again to clear your vote. Voting is anonymous.'
-                  : 'Votes can be changed at any time. Voting is anonymous.'}
+              {votingNotStarted
+                ? 'Voting has not opened yet.'
+                : votingClosed
+                  ? 'Voting is closed — a decision has been made for this applicant.'
+                  : myVote
+                    ? 'Select again to clear your vote. Voting is anonymous.'
+                    : 'Votes can be changed at any time. Voting is anonymous.'}
               {!canSeeVoteResults && ' Tallies are visible to VP Membership, VP Internal, and Secretary only.'}
             </p>
           </div>

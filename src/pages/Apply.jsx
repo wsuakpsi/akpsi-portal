@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import './Apply.css'
 import { CrestIcon } from '../components/AuthShell'
 import { resizeImage } from '../lib/resizeImage'
-import { APPLICATIONS_OPEN } from '../config/recruitment'
+import { APPLICATIONS_OPEN, applicationsClosed } from '../config/recruitment'
 import {
   STANDING_OPTIONS,
   GRADUATION_YEAR_OPTIONS,
@@ -280,6 +280,21 @@ export default function Apply() {
         <div className="apply-success">
           <h1>Applications have not opened yet.</h1>
           <p>Check back soon, or follow the chapter's social media for the recruitment timeline.</p>
+          <p className="apply-footer">
+            Chapter member? <a href="/login">Sign in</a>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (applicationsClosed()) {
+    return (
+      <div className="apply-root">
+        <Header />
+        <div className="apply-success">
+          <h1>Applications are closed.</h1>
+          <p>The application deadline has passed. Follow the chapter's social media for next steps.</p>
           <p className="apply-footer">
             Chapter member? <a href="/login">Sign in</a>
           </p>
