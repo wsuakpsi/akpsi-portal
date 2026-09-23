@@ -153,6 +153,23 @@
   color: var(--text);
 }
 
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.detail-nav .back-link {
+  margin-bottom: 0;
+}
+
+.detail-nav-siblings {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);

@@ -17,6 +17,80 @@ import {
 const MAX_FILE_MB = 10
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024
 
+// Every `not null` text/choice column on rush_applications (0026), in form
+// order, so a forgotten field is caught client-side with a specific message
+// instead of surfacing a raw Postgres error. Files and lateClassDays are
+// checked separately below since they aren't plain strings.
+const REQUIRED_TEXT_FIELDS = [
+  ['fullName', 'your first and last name'],
+  ['pronouns', 'your pronouns'],
+  ['accessId', 'your Access ID'],
+  ['wayneStateEmail', 'your Wayne State email'],
+  ['alternateEmail', 'your alternate email'],
+  ['standing', 'your current standing'],
+  ['graduationYear', 'your expected graduation'],
+  ['gpa', 'your current overall GPA'],
+  ['majors', 'your major(s)'],
+  ['minors', 'your minor(s) — enter N/A if none'],
+  ['everTransferred', 'whether you have ever transferred universities'],
+  ['plansToTransfer', 'whether you plan on transferring'],
+  ['titleIxViolation', 'the Title IX question'],
+  ['felonyConviction', 'the felony conviction question'],
+  ['howHeard', 'how you heard about Alpha Kappa Psi'],
+]
+
+// Fallback for check/not-null violations from the DB (0026, 0030, 0036) —
+// only reached if a field somehow bypasses the client-side checks above.
+const CHECK_CONSTRAINT_LABELS = {
+  rush_applications_standing_check: 'your current standing',
+  rush_applications_graduation_year_check: 'your expected graduation',
+  rush_applications_plans_to_transfer_check: 'whether you plan on transferring',
+  rush_applications_late_class_days_check:
+    'which days you have classes after 8 PM (choose "None" if that applies)',
+}
+
+const NOT_NULL_FIELD_LABELS = {
+  full_name: 'your first and last name',
+  pronouns: 'your pronouns',
+  access_id: 'your Access ID',
+  wayne_state_email: 'your Wayne State email',
+  alternate_email: 'your alternate email',
+  standing: 'your current standing',
+  graduation_year: 'your expected graduation',
+  gpa: 'your current overall GPA',
+  majors: 'your major(s)',
+  minors: 'your minor(s) — enter N/A if none',
+  ever_transferred: 'whether you have ever transferred universities',
+  plans_to_transfer: 'whether you plan on transferring',
+  title_ix_violation: 'the Title IX question',
+  felony_conviction: 'the felony conviction question',
+  how_heard: 'how you heard about Alpha Kappa Psi',
+  late_class_days: 'which days you have classes after 8 PM',
+}
+
+function friendlyErrorMessage(err) {
+  // Postgres unique_violation (0032) — this email already has an
+  // application on file.
+  if (err.code === '23505') {
+    return "An application with this email has already been submitted. Applications are only accepted once — if you believe this is a mistake, contact your recruitment chair."
+  }
+  if (err.code === '23514') {
+    const match = err.message?.match(/constraint "([a-z0-9_]+)"/i)
+    const label = match && CHECK_CONSTRAINT_LABELS[match[1]]
+    return label
+      ? `Please fill out ${label} before submitting.`
+      : "One of your answers isn't valid — please review the form and try again."
+  }
+  if (err.code === '23502') {
+    const match = err.message?.match(/column "([a-z0-9_]+)"/i)
+    const label = match && NOT_NULL_FIELD_LABELS[match[1]]
+    return label
+      ? `Please fill out ${label} before submitting.`
+      : 'Please fill out all required fields before submitting.'
+  }
+  return `Could not submit application: ${err.message}`
+}
+
 const initialFields = {
   fullName: '',
   pronouns: '',
@@ -233,6 +307,11 @@ export default function Apply() {
     e.preventDefault()
     setError(null)
 
+    const missing = REQUIRED_TEXT_FIELDS.find(([key]) => !String(fields[key] ?? '').trim())
+    if (missing) {
+      setError(`Please fill out ${missing[1]} before submitting.`)
+      return
+    }
     if (!resume || !coverLetter || !headshot) {
       setError('Please attach your resume, cover letter, and headshot before submitting.')
       return
@@ -257,17 +336,9 @@ export default function Apply() {
       setDone(true)
       window.scrollTo({ top: 0 })
     } catch (err) {
-      // Postgres unique_violation (0032) — this email already has an
-      // application on file.
-      if (err.code === '23505') {
-        const message =
-          "An application with this email has already been submitted. Applications are only accepted once — if you believe this is a mistake, contact your recruitment chair."
-        setError(message)
-        toast.error(message)
-      } else {
-        setError(err.message)
-        toast.error(`Could not submit application: ${err.message}`)
-      }
+      const message = friendlyErrorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }

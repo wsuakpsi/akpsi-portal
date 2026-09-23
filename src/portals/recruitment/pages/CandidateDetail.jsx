@@ -19,6 +19,7 @@ import {
   setDecision,
   softDeleteApplication,
   subscribeToApplication,
+  listApplications,
 } from '../../../lib/applications'
 
 function timeAgo(iso) {
@@ -73,6 +74,7 @@ export default function CandidateDetail({ profile }) {
   const [commentText, setCommentText] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [siblingIds, setSiblingIds] = useState(null)
 
   async function loadVotes() {
     try {
@@ -142,6 +144,24 @@ export default function CandidateDetail({ profile }) {
       unsubscribe()
     }
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    listApplications()
+      .then((apps) => {
+        if (!cancelled) setSiblingIds(apps.map((app) => app.id))
+      })
+      .catch(() => {
+        // Prev/Next nav is a convenience — silently skip if the list fails to load.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const siblingIndex = siblingIds ? siblingIds.indexOf(id) : -1
+  const prevId = siblingIndex > 0 ? siblingIds[siblingIndex - 1] : null
+  const nextId = siblingIndex !== -1 && siblingIndex < (siblingIds?.length ?? 0) - 1 ? siblingIds[siblingIndex + 1] : null
 
   async function handleVote(vote) {
     setBusy(true)
@@ -217,9 +237,23 @@ export default function CandidateDetail({ profile }) {
 
   return (
     <div>
-      <Link to="/recruitment" className="back-link">
-        <span aria-hidden="true">&larr;</span> All candidates
-      </Link>
+      <div className="detail-nav">
+        <Link to="/recruitment" className="back-link">
+          <span aria-hidden="true">&larr;</span> All candidates
+        </Link>
+        <div className="detail-nav-siblings">
+          {prevId ? (
+            <Link to={`/recruitment/${prevId}`} className="btn secondary small">&larr; Previous</Link>
+          ) : (
+            <button type="button" className="btn secondary small" disabled>&larr; Previous</button>
+          )}
+          {nextId ? (
+            <Link to={`/recruitment/${nextId}`} className="btn secondary small">Next &rarr;</Link>
+          ) : (
+            <button type="button" className="btn secondary small" disabled>Next &rarr;</button>
+          )}
+        </div>
+      </div>
 
       <div className="detail-layout">
         <aside className="detail-side">
