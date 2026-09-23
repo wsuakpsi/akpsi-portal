@@ -4,6 +4,11 @@ export { getActiveSemester, formatDateTime, formatDate, initials } from '../../.
 
 export const POINT_CATEGORIES = ['professional', 'service', 'fundraising', 'social']
 
+// Rush and extra points count toward a brother's total but aren't tied to a
+// standing threshold (see STANDARD_THRESHOLDS/LOWER_THRESHOLDS below), so
+// they're kept out of POINT_CATEGORIES and tracked separately.
+export const EXTRA_POINT_CATEGORIES = ['rush', 'extra']
+
 export const EVENT_CATEGORIES = ['professional', 'service', 'fundraising', 'social', 'rush', 'extra', 'meeting']
 
 // Converts an ISO timestamp to the value a <input type="datetime-local"> expects, in local time.

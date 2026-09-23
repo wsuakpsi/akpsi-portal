@@ -7,6 +7,7 @@ import {
   getActiveSemester,
   formatDate,
   POINT_CATEGORIES,
+  EXTRA_POINT_CATEGORIES,
   STANDARD_THRESHOLDS,
   LOWER_THRESHOLDS,
   initials,
@@ -14,7 +15,7 @@ import {
 import { EboardPageSkeleton } from '../../../components/Skeleton'
 
 const POST_ADJUSTMENT_URL = import.meta.env.VITE_POST_ADJUSTMENT_URL
-const ADJUSTMENT_CATEGORIES = ['adjustment', ...POINT_CATEGORIES, 'rush', 'extra', 'meeting']
+const ADJUSTMENT_CATEGORIES = ['adjustment', ...POINT_CATEGORIES, ...EXTRA_POINT_CATEGORIES, 'meeting']
 const STATUS_OPTIONS = ['active', 'probation', 'suspended', 'alumni', 'archived']
 
 function roleLabel(role) {
@@ -563,9 +564,9 @@ export default function BrotherDetail({ profile }) {
 
   const thresholdType = thresholdApp?.status === 'approved' ? 'lower' : 'standard'
   const thresholds = thresholdType === 'lower' ? LOWER_THRESHOLDS : STANDARD_THRESHOLDS
-  const categoryTotals = Object.fromEntries(POINT_CATEGORIES.map((c) => [c, 0]))
+  const categoryTotals = Object.fromEntries([...POINT_CATEGORIES, ...EXTRA_POINT_CATEGORIES].map((c) => [c, 0]))
   for (const row of ledgerRows) {
-    if (POINT_CATEGORIES.includes(row.category)) categoryTotals[row.category] += row.delta
+    if (row.category in categoryTotals) categoryTotals[row.category] += row.delta
   }
 
   return (
@@ -718,6 +719,13 @@ export default function BrotherDetail({ profile }) {
                   </div>
                 )
               })}
+              {EXTRA_POINT_CATEGORIES.map((c) => (
+                <div className="progress-tile" key={c}>
+                  <div className="progress-label">{c}</div>
+                  <div className="progress-value">{categoryTotals[c]}</div>
+                  <div className="progress-required">no threshold</div>
+                </div>
+              ))}
             </div>
           </div>
 

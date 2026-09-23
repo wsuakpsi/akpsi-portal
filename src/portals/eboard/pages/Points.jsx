@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
-import { getActiveSemester, POINT_CATEGORIES, initials } from '../lib/queries'
+import { getActiveSemester, POINT_CATEGORIES, EXTRA_POINT_CATEGORIES, initials } from '../lib/queries'
 import { selectAllRows } from '../../../lib/selectAll'
 import { EboardPageSkeleton } from '../../../components/Skeleton'
+
+// Rush/extra points count toward the Total column but have no standing
+// threshold, so they're appended after the threshold-bound categories.
+const ALL_CATEGORIES = [...POINT_CATEGORIES, ...EXTRA_POINT_CATEGORIES]
 
 const CALCULATE_STANDING_URL = import.meta.env.VITE_CALCULATE_STANDING_URL
 
@@ -105,14 +109,14 @@ export default function Points() {
           totalsByMember[member.id] = {
             id: member.id,
             name: member.full_name,
-            byCategory: Object.fromEntries(POINT_CATEGORIES.map((c) => [c, 0])),
+            byCategory: Object.fromEntries(ALL_CATEGORIES.map((c) => [c, 0])),
             total: 0,
           }
         }
 
         for (const row of ledgerRes.data || []) {
           if (!totalsByMember[row.member_id]) continue
-          if (POINT_CATEGORIES.includes(row.category)) {
+          if (ALL_CATEGORIES.includes(row.category)) {
             totalsByMember[row.member_id].byCategory[row.category] += row.delta
           }
           totalsByMember[row.member_id].total += row.delta
@@ -208,7 +212,7 @@ export default function Points() {
                 <thead>
                   <tr>
                     <th>Name</th>
-                    {POINT_CATEGORIES.map((c) => (
+                    {ALL_CATEGORIES.map((c) => (
                       <th key={c} style={{ textTransform: 'capitalize' }}>{c}</th>
                     ))}
                     <th>Total</th>
@@ -223,7 +227,7 @@ export default function Points() {
                           <div className="member-name">{row.name}</div>
                         </div>
                       </td>
-                      {POINT_CATEGORIES.map((c) => (
+                      {ALL_CATEGORIES.map((c) => (
                         <td key={c}>{row.byCategory[c]}</td>
                       ))}
                       <td><strong>{row.total}</strong></td>
