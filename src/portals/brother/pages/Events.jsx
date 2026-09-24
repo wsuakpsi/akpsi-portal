@@ -230,7 +230,7 @@ export default function Events({ profile }) {
           <div className="card">
             {visibleEvents.map((event) => (
               <div className="list-item" key={event.id}>
-                <Link className="title" to={`/brother/events/${event.id}`}>{event.name}</Link>
+                <div className="title">{event.name}</div>
                 <div className="meta">
                   <span className={`pill ${event.category}`}>{event.category}</span>{' '}
                   {formatDateTime(event.starts_at)} &middot; {event.points_value} pts
@@ -239,7 +239,10 @@ export default function Events({ profile }) {
                     <> &middot; {goingCounts[event.id] || 0} / {event.capacity} RSVP'd</>
                   )}
                 </div>
-                <div style={{ marginTop: '0.5rem' }}>{renderAction(event)}</div>
+                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                  <Link className="btn secondary" to={`/brother/events/${event.id}`}>View</Link>
+                  {renderAction(event)}
+                </div>
               </div>
             ))}
           </div>
