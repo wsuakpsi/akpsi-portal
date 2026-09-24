@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { callLambda } from '../../../lib/lambdas'
@@ -31,23 +32,28 @@ export default function Events({ profile }) {
         return
       }
 
-      const [eventsRes, rsvpsRes, attendanceRes, meetingRes, goingCountsRes] = await Promise.all([
-        supabase
-          .from('events')
-          .select('*')
-          .eq('semester_id', semester.id)
-          .order('starts_at', { ascending: true }),
+      const eventsRes = await supabase
+        .from('events')
+        .select('*')
+        .eq('semester_id', semester.id)
+        .order('starts_at', { ascending: true })
+      if (eventsRes.error) throw eventsRes.error
+
+      const eventIds = (eventsRes.data || []).map((e) => e.id)
+
+      const [rsvpsRes, attendanceRes, meetingRes, goingRes] = await Promise.all([
         supabase.from('rsvps').select('*').eq('member_id', profile.id),
         supabase.from('attendance').select('*').eq('member_id', profile.id),
         supabase.from('meeting_attendance').select('*').eq('member_id', profile.id),
-        supabase.rpc('event_going_counts', { p_semester_id: semester.id }),
+        eventIds.length > 0
+          ? supabase.from('rsvps').select('event_id').eq('status', 'going').in('event_id', eventIds)
+          : Promise.resolve({ data: [], error: null }),
       ])
 
-      if (eventsRes.error) throw eventsRes.error
       if (rsvpsRes.error) throw rsvpsRes.error
       if (attendanceRes.error) throw attendanceRes.error
       if (meetingRes.error) throw meetingRes.error
-      if (goingCountsRes.error) throw goingCountsRes.error
+      if (goingRes.error) throw goingRes.error
 
       const rsvpMap = {}
       for (const r of rsvpsRes.data) rsvpMap[r.event_id] = r
@@ -56,7 +62,7 @@ export default function Events({ profile }) {
       for (const m of meetingRes.data) meetingMap[m.event_id] = m
 
       const countMap = {}
-      for (const row of goingCountsRes.data || []) countMap[row.event_id] = row.going_count
+      for (const row of goingRes.data || []) countMap[row.event_id] = (countMap[row.event_id] || 0) + 1
 
       setEvents(eventsRes.data || [])
       setRsvpByEvent(rsvpMap)
@@ -224,7 +230,7 @@ export default function Events({ profile }) {
           <div className="card">
             {visibleEvents.map((event) => (
               <div className="list-item" key={event.id}>
-                <div className="title">{event.name}</div>
+                <Link className="title" to={`/brother/events/${event.id}`}>{event.name}</Link>
                 <div className="meta">
                   <span className={`pill ${event.category}`}>{event.category}</span>{' '}
                   {formatDateTime(event.starts_at)} &middot; {event.points_value} pts

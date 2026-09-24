@@ -4,6 +4,7 @@ import BottomNav from './components/BottomNav'
 import InstallPrompt from './components/InstallPrompt'
 import Home from './pages/Home'
 import Events from './pages/Events'
+import EventDetail from './pages/EventDetail'
 import Attendance from './pages/Attendance'
 import Roster from './pages/Roster'
 import RosterDetail from './pages/RosterDetail'
@@ -18,6 +19,7 @@ export default function BrotherRouter({ profile }) {
         <Route path="/" element={<Navigate to="/brother" replace />} />
         <Route path="/brother" element={<Home profile={profile} />} />
         <Route path="/brother/events" element={<Events profile={profile} />} />
+        <Route path="/brother/events/:id" element={<EventDetail profile={profile} />} />
         <Route path="/brother/attendance" element={<Attendance profile={profile} />} />
         <Route path="/brother/roster" element={<Roster profile={profile} />} />
         <Route path="/brother/roster/:id" element={<RosterDetail profile={profile} />} />

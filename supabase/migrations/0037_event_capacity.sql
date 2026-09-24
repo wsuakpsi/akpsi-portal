@@ -46,24 +46,3 @@ drop trigger if exists rsvps_enforce_capacity on rsvps;
 create trigger rsvps_enforce_capacity
   before insert or update on rsvps
   for each row execute function enforce_event_capacity();
-
--- Brothers can only see their own rsvp rows (rsvps_select policy), so they
--- have no way to know how full a capped event is. Expose just the aggregate
--- going-count per event in a semester — no member identities — via an RPC
--- any authenticated user can call.
-create or replace function event_going_counts(p_semester_id uuid)
-returns table (event_id uuid, going_count integer)
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select r.event_id, count(*)::integer as going_count
-  from rsvps r
-  join events e on e.id = r.event_id
-  where e.semester_id = p_semester_id
-    and r.status = 'going'
-  group by r.event_id;
-$$;
-
-grant execute on function event_going_counts(uuid) to authenticated;
