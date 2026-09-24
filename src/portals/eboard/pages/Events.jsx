@@ -21,6 +21,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
   const [location, setLocation] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [durationMinutes, setDurationMinutes] = useState(120)
+  const [capacity, setCapacity] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
@@ -35,6 +36,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
         is_required: isRequired,
         location: location || null,
         starts_at: new Date(startsAt).toISOString(),
+        capacity: capacity ? Number(capacity) : null,
       }).select('id').single()
       if (insertError) throw insertError
 
@@ -124,6 +126,17 @@ function AddEventForm({ semester, onClose, onAdded }) {
               step="15"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="capacity">RSVP cap (optional)</label>
+            <input
+              id="capacity"
+              type="number"
+              min="1"
+              placeholder="Unlimited"
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
             />
           </div>
           <div className="form-field checkbox">
@@ -305,7 +318,10 @@ export default function Events() {
             <div className="stat-label">Voided</div>
           ) : (
             <>
-              <div className="stat-num">{rsvpCounts[event.id] || 0}</div>
+              <div className="stat-num">
+                {rsvpCounts[event.id] || 0}
+                {event.capacity ? ` / ${event.capacity}` : ''}
+              </div>
               <div className="stat-label">RSVP'd</div>
             </>
           )}

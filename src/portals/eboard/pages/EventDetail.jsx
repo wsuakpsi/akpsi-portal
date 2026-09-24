@@ -63,6 +63,7 @@ function EditEventForm({ event, onClose, onSaved }) {
   const [isRequired, setIsRequired] = useState(event.is_required)
   const [location, setLocation] = useState(event.location || '')
   const [startsAt, setStartsAt] = useState(toDatetimeLocalValue(event.starts_at))
+  const [capacity, setCapacity] = useState(event.capacity ?? '')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
@@ -78,6 +79,7 @@ function EditEventForm({ event, onClose, onSaved }) {
           is_required: isRequired,
           location: location || null,
           starts_at: new Date(startsAt).toISOString(),
+          capacity: capacity ? Number(capacity) : null,
         })
         .eq('id', event.id)
       if (error) throw error
@@ -133,6 +135,17 @@ function EditEventForm({ event, onClose, onSaved }) {
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
             required
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="edit-capacity">RSVP cap (optional)</label>
+          <input
+            id="edit-capacity"
+            type="number"
+            min="1"
+            placeholder="Unlimited"
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
           />
         </div>
         <div className="form-field checkbox">
@@ -386,6 +399,7 @@ export default function EventDetail() {
             <tr><th>Date</th><td>{formatDateTime(event.starts_at)}</td></tr>
             <tr><th>Location</th><td>{event.location || '-'}</td></tr>
             <tr><th>Points value</th><td>{event.points_value}</td></tr>
+            <tr><th>RSVP cap</th><td>{event.capacity ? `${rsvps.filter((r) => r.status === 'going').length} / ${event.capacity}` : 'Unlimited'}</td></tr>
             <tr><th>Status</th><td><span className={`status-badge ${event.status}`}>{event.status}</span></td></tr>
           </tbody>
         </table>

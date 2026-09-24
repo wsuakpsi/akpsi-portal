@@ -14,6 +14,7 @@ export default function Events({ profile }) {
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
   const [rsvpByEvent, setRsvpByEvent] = useState({})
+  const [goingCounts, setGoingCounts] = useState({})
   const [attendedEventIds, setAttendedEventIds] = useState(new Set())
   const [meetingAttendanceByEvent, setMeetingAttendanceByEvent] = useState({})
   const [busyEventId, setBusyEventId] = useState(null)
@@ -30,7 +31,7 @@ export default function Events({ profile }) {
         return
       }
 
-      const [eventsRes, rsvpsRes, attendanceRes, meetingRes] = await Promise.all([
+      const [eventsRes, rsvpsRes, attendanceRes, meetingRes, goingCountsRes] = await Promise.all([
         supabase
           .from('events')
           .select('*')
@@ -39,12 +40,14 @@ export default function Events({ profile }) {
         supabase.from('rsvps').select('*').eq('member_id', profile.id),
         supabase.from('attendance').select('*').eq('member_id', profile.id),
         supabase.from('meeting_attendance').select('*').eq('member_id', profile.id),
+        supabase.rpc('event_going_counts', { p_semester_id: semester.id }),
       ])
 
       if (eventsRes.error) throw eventsRes.error
       if (rsvpsRes.error) throw rsvpsRes.error
       if (attendanceRes.error) throw attendanceRes.error
       if (meetingRes.error) throw meetingRes.error
+      if (goingCountsRes.error) throw goingCountsRes.error
 
       const rsvpMap = {}
       for (const r of rsvpsRes.data) rsvpMap[r.event_id] = r
@@ -52,10 +55,14 @@ export default function Events({ profile }) {
       const meetingMap = {}
       for (const m of meetingRes.data) meetingMap[m.event_id] = m
 
+      const countMap = {}
+      for (const row of goingCountsRes.data || []) countMap[row.event_id] = row.going_count
+
       setEvents(eventsRes.data || [])
       setRsvpByEvent(rsvpMap)
       setAttendedEventIds(new Set(attendanceRes.data.map((a) => a.event_id)))
       setMeetingAttendanceByEvent(meetingMap)
+      setGoingCounts(countMap)
     } catch (err) {
       setError(err.message)
       toast.error(`Could not load events: ${err.message}`)
@@ -82,9 +89,15 @@ export default function Events({ profile }) {
         .single()
       if (upsertError) throw upsertError
       setRsvpByEvent((prev) => ({ ...prev, [event.id]: data }))
+      setGoingCounts((prev) => ({ ...prev, [event.id]: (prev[event.id] || 0) + 1 }))
       toast.success(`RSVP'd to ${event.name}.`)
     } catch (err) {
-      toast.error(`Could not RSVP: ${err.message}`)
+      if (err.message?.includes('at capacity')) {
+        toast.error(`${event.name} is full.`)
+        setGoingCounts((prev) => ({ ...prev, [event.id]: event.capacity }))
+      } else {
+        toast.error(`Could not RSVP: ${err.message}`)
+      }
     } finally {
       setBusyEventId(null)
     }
@@ -108,6 +121,7 @@ export default function Events({ profile }) {
     try {
       await callLambda(RECORD_LATE_CANCEL_URL, { rsvpId: rsvp.id, memberId: profile.id })
       setRsvpByEvent((prev) => ({ ...prev, [event.id]: { ...rsvp, status: 'cancelled' } }))
+      setGoingCounts((prev) => ({ ...prev, [event.id]: Math.max((prev[event.id] || 1) - 1, 0) }))
       toast.success(isLate ? `RSVP cancelled — a late cancel penalty was posted.` : 'RSVP cancelled.')
     } catch (err) {
       toast.error(`Could not cancel RSVP: ${err.message}`)
@@ -143,6 +157,10 @@ export default function Events({ profile }) {
             {isBusy ? 'Updating...' : 'Cancel RSVP'}
           </button>
         )
+      }
+      const isFull = event.capacity != null && (goingCounts[event.id] || 0) >= event.capacity
+      if (isFull) {
+        return <span className="status-badge unexcused">Event full</span>
       }
       return (
         <button className="btn" disabled={isBusy} onClick={() => handleRsvp(event)}>
@@ -211,6 +229,9 @@ export default function Events({ profile }) {
                   <span className={`pill ${event.category}`}>{event.category}</span>{' '}
                   {formatDateTime(event.starts_at)} &middot; {event.points_value} pts
                   {event.location && <> &middot; {event.location}</>}
+                  {event.capacity != null && (
+                    <> &middot; {goingCounts[event.id] || 0} / {event.capacity} RSVP'd</>
+                  )}
                 </div>
                 <div style={{ marginTop: '0.5rem' }}>{renderAction(event)}</div>
               </div>
