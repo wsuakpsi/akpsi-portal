@@ -254,3 +254,30 @@ export function subscribeToApplication(applicationId, { onVote, onComment }) {
 
   return () => supabase.removeChannel(channel)
 }
+
+// Danger: deletes every member's vote on every applicant (decided ones too).
+// VP Membership / VP Internal / Secretary only — enforced in the RPC.
+export async function resetAllVotes() {
+  const { data, error } = await supabase.rpc('reset_all_votes')
+  if (error) throw error
+  return data
+}
+
+export async function getMaybeEnabled() {
+  const { data, error } = await supabase.from('recruitment_settings').select('maybe_enabled').eq('id', true).single()
+  if (error) throw error
+  return data.maybe_enabled
+}
+
+export async function setMaybeEnabled(enabled) {
+  const { error } = await supabase.rpc('set_maybe_enabled', { p_enabled: enabled })
+  if (error) throw error
+}
+
+export function subscribeToMaybeSetting(onChange) {
+  const channel = supabase
+    .channel('recruitment-settings')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'recruitment_settings' }, onChange)
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}

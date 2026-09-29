@@ -3,7 +3,18 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { initials } from '../../../lib/queries'
 import { callLambda } from '../../../lib/lambdas'
-import { canSeeResults, listApplications, getVoteTallies, getDecisions, getSignedFileUrl } from '../../../lib/applications'
+import ConfirmModal from '../../../components/ConfirmModal'
+import {
+  canSeeResults,
+  listApplications,
+  getVoteTallies,
+  getDecisions,
+  getSignedFileUrl,
+  resetAllVotes,
+  getMaybeEnabled,
+  setMaybeEnabled,
+  subscribeToMaybeSetting,
+} from '../../../lib/applications'
 
 const RUSH_SHEETS_SYNC_URL = import.meta.env.VITE_RUSH_SHEETS_SYNC_URL
 
@@ -31,6 +42,9 @@ export default function Candidates({ profile }) {
   const [avatarUrls, setAvatarUrls] = useState({})
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState(false)
+  const [maybeEnabled, setMaybeEnabledState] = useState(false)
+  const [confirmingReset, setConfirmingReset] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -73,6 +87,35 @@ export default function Candidates({ profile }) {
     load()
   }, [])
 
+  useEffect(() => {
+    const refresh = () => getMaybeEnabled().then(setMaybeEnabledState).catch(() => {})
+    refresh()
+    return subscribeToMaybeSetting(refresh)
+  }, [])
+
+  async function handleReset() {
+    setResetting(true)
+    try {
+      const count = await resetAllVotes()
+      toast.success(`Reset complete — ${count} vote${count === 1 ? '' : 's'} cleared.`)
+      setConfirmingReset(false)
+      await load()
+    } catch (err) {
+      toast.error(`Could not reset votes: ${err.message}`)
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  async function handleToggleMaybe() {
+    try {
+      await setMaybeEnabled(!maybeEnabled)
+      setMaybeEnabledState(!maybeEnabled)
+    } catch (err) {
+      toast.error(`Could not update setting: ${err.message}`)
+    }
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return applications
@@ -101,6 +144,16 @@ export default function Candidates({ profile }) {
             {search && filtered.length !== applications.length ? ` · ${filtered.length} matching` : ''}
           </p>
         </div>
+        {canSeeVoteResults && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn secondary" onClick={handleToggleMaybe}>
+              {maybeEnabled ? 'Disable Maybe' : 'Enable Maybe'}
+            </button>
+            <button className="btn danger" onClick={() => setConfirmingReset(true)}>
+              Reset all votes
+            </button>
+          </div>
+        )}
         {isEboard && RUSH_SHEETS_SYNC_URL && (
           <button className="btn secondary" onClick={handleSync} disabled={syncing}>
             {syncing ? 'Syncing…' : 'Sync to Google Sheets'}
@@ -141,7 +194,7 @@ export default function Candidates({ profile }) {
                     <div className="candidate-tally">
                       <span className="yes">{t.yes} Y</span>
                       <span className="no">{t.no} N</span>
-                      <span className="maybe">{t.maybe} M</span>
+                      {maybeEnabled && <span className="maybe">{t.maybe} M</span>}
                     </div>
                     {decision !== 'pending' && <span className={`status-badge ${decision}`}>{decision}</span>}
                   </div>
@@ -150,6 +203,18 @@ export default function Candidates({ profile }) {
             )
           })}
         </div>
+      )}
+    
+      {confirmingReset && (
+        <ConfirmModal
+          title="Reset ALL votes?"
+          body="This permanently deletes every member's vote on every applicant, including applicants who already have a decision. It cannot be undone. Decisions are not changed."
+          confirmLabel="Yes, reset all votes"
+          confirmClassName="btn danger"
+          busy={resetting}
+          onConfirm={handleReset}
+          onClose={() => setConfirmingReset(false)}
+        />
       )}
     </div>
   )

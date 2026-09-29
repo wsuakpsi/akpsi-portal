@@ -13,6 +13,8 @@ import {
   getDecision,
   getSignedFileUrl,
   castVote,
+  getMaybeEnabled,
+  subscribeToMaybeSetting,
   retractVote,
   addComment,
   deleteComment,
@@ -75,6 +77,13 @@ export default function CandidateDetail({ profile }) {
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [siblingIds, setSiblingIds] = useState(null)
+  const [maybeEnabled, setMaybeEnabledState] = useState(false)
+
+  useEffect(() => {
+    const refresh = () => getMaybeEnabled().then(setMaybeEnabledState).catch(() => {})
+    refresh()
+    return subscribeToMaybeSetting(refresh)
+  }, [])
 
   async function loadVotes() {
     try {
@@ -303,13 +312,13 @@ export default function CandidateDetail({ profile }) {
               <div className="vote-tallies">
                 <div className="vote-tally yes"><span className="vote-tally-count">{tally.yes}</span><span className="vote-tally-label">Yes</span></div>
                 <div className="vote-tally no"><span className="vote-tally-count">{tally.no}</span><span className="vote-tally-label">No</span></div>
-                <div className="vote-tally maybe"><span className="vote-tally-count">{tally.maybe}</span><span className="vote-tally-label">Maybe</span></div>
+                {maybeEnabled && <div className="vote-tally maybe"><span className="vote-tally-count">{tally.maybe}</span><span className="vote-tally-label">Maybe</span></div>}
               </div>
             )}
             <div className="vote-segment" role="group" aria-label="Cast your vote">
               <button className={`vote-btn yes ${myVote === 'yes' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('yes')} aria-pressed={myVote === 'yes'}>Yes</button>
               <button className={`vote-btn no ${myVote === 'no' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('no')} aria-pressed={myVote === 'no'}>No</button>
-              <button className={`vote-btn maybe ${myVote === 'maybe' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('maybe')} aria-pressed={myVote === 'maybe'}>Maybe</button>
+              {maybeEnabled && <button className={`vote-btn maybe ${myVote === 'maybe' ? 'active' : ''}`} disabled={busy || votingClosed} onClick={() => handleVote('maybe')} aria-pressed={myVote === 'maybe'}>Maybe</button>}
             </div>
             <p className="vote-help">
               {votingNotStarted
