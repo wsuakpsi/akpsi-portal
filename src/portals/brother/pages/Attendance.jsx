@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { formatDateTime } from '../lib/queries'
@@ -80,6 +81,18 @@ export default function Attendance({ profile }) {
   const [upcomingMeetings, setUpcomingMeetings] = useState([])
   const [formsByEvent, setFormsByEvent] = useState({})
   const [excuseTarget, setExcuseTarget] = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Deep link from the Events pages: /brother/attendance?excuse=<eventId>
+  // opens the excuse form for that event (meeting or required event).
+  useEffect(() => {
+    const eventId = searchParams.get('excuse')
+    if (!eventId) return
+    setTab('meetings')
+    setExcuseTarget({ event_id: eventId, member_id: profile.id })
+    setSearchParams({}, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function load() {
     setLoading(true)

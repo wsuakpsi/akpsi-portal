@@ -18,6 +18,7 @@ export default function Events({ profile }) {
   const [goingCounts, setGoingCounts] = useState({})
   const [attendedEventIds, setAttendedEventIds] = useState(new Set())
   const [meetingAttendanceByEvent, setMeetingAttendanceByEvent] = useState({})
+  const [excuseEventIds, setExcuseEventIds] = useState(new Set())
   const [busyEventId, setBusyEventId] = useState(null)
   const [view, setView] = useState('upcoming')
 
@@ -41,19 +42,21 @@ export default function Events({ profile }) {
 
       const eventIds = (eventsRes.data || []).map((e) => e.id)
 
-      const [rsvpsRes, attendanceRes, meetingRes, goingRes] = await Promise.all([
+      const [rsvpsRes, attendanceRes, meetingRes, goingRes, formsRes] = await Promise.all([
         supabase.from('rsvps').select('*').eq('member_id', profile.id),
         supabase.from('attendance').select('*').eq('member_id', profile.id),
         supabase.from('meeting_attendance').select('*').eq('member_id', profile.id),
         eventIds.length > 0
           ? supabase.from('rsvps').select('event_id').eq('status', 'going').in('event_id', eventIds)
           : Promise.resolve({ data: [], error: null }),
+        supabase.from('missing_meeting_forms').select('event_id').eq('member_id', profile.id),
       ])
 
       if (rsvpsRes.error) throw rsvpsRes.error
       if (attendanceRes.error) throw attendanceRes.error
       if (meetingRes.error) throw meetingRes.error
       if (goingRes.error) throw goingRes.error
+      if (formsRes.error) throw formsRes.error
 
       const rsvpMap = {}
       for (const r of rsvpsRes.data) rsvpMap[r.event_id] = r
@@ -69,6 +72,7 @@ export default function Events({ profile }) {
       setAttendedEventIds(new Set(attendanceRes.data.map((a) => a.event_id)))
       setMeetingAttendanceByEvent(meetingMap)
       setGoingCounts(countMap)
+      setExcuseEventIds(new Set(formsRes.data.map((f) => f.event_id)))
     } catch (err) {
       setError(err.message)
       toast.error(`Could not load events: ${err.message}`)
@@ -114,7 +118,7 @@ export default function Events({ profile }) {
     if (!rsvp) return
 
     const hoursUntilStart = (new Date(event.starts_at).getTime() - Date.now()) / (1000 * 60 * 60)
-    const isLate = hoursUntilStart <= LATE_CANCEL_WINDOW_HOURS
+    const isLate = event.rsvp_penalty === true && hoursUntilStart <= LATE_CANCEL_WINDOW_HOURS
     if (isLate) {
       const confirmed = window.confirm(
         `This event starts within ${LATE_CANCEL_WINDOW_HOURS} hours. Cancelling now is a late cancel and posts a ` +
@@ -136,14 +140,26 @@ export default function Events({ profile }) {
     }
   }
 
+  // Meetings and required events have no RSVP — the only advance action is
+  // an excuse request, which lives on the Attendance page.
+  function renderExcuse(event) {
+    if (excuseEventIds.has(event.id)) return <span className="status-badge pending">Excuse submitted</span>
+    return (
+      <Link className="btn secondary" to={`/brother/attendance?excuse=${event.id}`}>
+        Submit excuse form
+      </Link>
+    )
+  }
+
   function renderAction(event) {
     const isFuture = event.status === 'scheduled' && new Date(event.starts_at) > new Date()
     const isBusy = busyEventId === event.id
 
     if (event.category === 'meeting') {
       const record = meetingAttendanceByEvent[event.id]
-      if (!record) return <span className="empty-state">Not recorded yet</span>
-      return <span className={`status-badge ${record.status}`}>{record.status}</span>
+      if (record) return <span className={`status-badge ${record.status}`}>{record.status}</span>
+      if (isFuture) return renderExcuse(event)
+      return <span className="empty-state">Not recorded yet</span>
     }
 
     if (event.status === 'completed') {
@@ -154,6 +170,8 @@ export default function Events({ profile }) {
         </span>
       )
     }
+
+    if (isFuture && event.is_required) return renderExcuse(event)
 
     if (isFuture) {
       const rsvp = rsvpByEvent[event.id]

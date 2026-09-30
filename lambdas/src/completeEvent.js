@@ -9,7 +9,7 @@ export async function completeEvent(eventId) {
 
   const { data: eventRow, error: eventFetchError } = await supabase
     .from('events')
-    .select('id, semester_id, category, points_value, name, status')
+    .select('id, semester_id, category, points_value, name, status, rsvp_penalty')
     .eq('id', eventId)
     .maybeSingle();
   if (eventFetchError) return { success: false, error: eventFetchError.message };
@@ -101,7 +101,8 @@ export async function completeEvent(eventId) {
         );
       if (sweepError) return { success: false, error: sweepError.message };
     }
-    noShows = noShowRsvps;
+    // Status is bookkeeping; the penalty itself only applies when the event opted in.
+    if (eventRow.rsvp_penalty) noShows = noShowRsvps;
   }
 
   // Meetings never carry a point impact: their attendance lives in

@@ -14,7 +14,7 @@ export async function recordLateCancel(rsvpId, expectedMemberId) {
 
   const { data: rsvp, error: rsvpError } = await supabase
     .from('rsvps')
-    .select('id, member_id, event_id, status, events ( id, semester_id, category, starts_at, name, status )')
+    .select('id, member_id, event_id, status, events ( id, semester_id, category, starts_at, name, status, rsvp_penalty )')
     .eq('id', rsvpId)
     .maybeSingle();
   if (rsvpError) return { success: false, error: rsvpError.message };
@@ -43,7 +43,7 @@ export async function recordLateCancel(rsvpId, expectedMemberId) {
   if (updateError) return { success: false, error: updateError.message };
 
   const hoursUntilStart = (new Date(event.starts_at).getTime() - Date.now()) / (1000 * 60 * 60);
-  const isLate = hoursUntilStart <= LATE_CANCEL_WINDOW_HOURS;
+  const isLate = event.rsvp_penalty === true && hoursUntilStart <= LATE_CANCEL_WINDOW_HOURS;
 
   if (isLate) {
     const { error: ledgerError } = await supabase.from('points_ledger').insert({

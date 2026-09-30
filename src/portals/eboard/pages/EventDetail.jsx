@@ -61,6 +61,7 @@ function EditEventForm({ event, onClose, onSaved }) {
   const [category, setCategory] = useState(event.category)
   const [pointsValue, setPointsValue] = useState(event.points_value)
   const [isRequired, setIsRequired] = useState(event.is_required)
+  const [rsvpPenalty, setRsvpPenalty] = useState(event.rsvp_penalty ?? false)
   const [location, setLocation] = useState(event.location || '')
   const [startsAt, setStartsAt] = useState(toDatetimeLocalValue(event.starts_at))
   const [capacity, setCapacity] = useState(event.capacity ?? '')
@@ -77,6 +78,7 @@ function EditEventForm({ event, onClose, onSaved }) {
           category,
           points_value: Number(pointsValue) || 0,
           is_required: isRequired,
+          rsvp_penalty: rsvpPenalty && !isRequired && category !== 'meeting',
           location: location || null,
           starts_at: new Date(startsAt).toISOString(),
           capacity: capacity ? Number(capacity) : null,
@@ -157,6 +159,19 @@ function EditEventForm({ event, onClose, onSaved }) {
           />
           <label htmlFor="edit-is_required" style={{ marginBottom: 0 }}>Required event</label>
         </div>
+        {!isRequired && category !== 'meeting' && (
+          <div className="form-field checkbox">
+            <input
+              id="edit-rsvp_penalty"
+              type="checkbox"
+              checked={rsvpPenalty}
+              onChange={(e) => setRsvpPenalty(e.target.checked)}
+            />
+            <label htmlFor="edit-rsvp_penalty" style={{ marginBottom: 0 }}>
+              Add RSVP penalty (-10 for cancelling within 24h or not showing up after RSVPing)
+            </label>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
           <button type="submit" className="btn" disabled={submitting}>
             {submitting ? 'Saving...' : 'Save changes'}
@@ -399,6 +414,9 @@ export default function EventDetail() {
             <tr><th>Date</th><td>{formatDateTime(event.starts_at)}</td></tr>
             <tr><th>Location</th><td>{event.location || '-'}</td></tr>
             <tr><th>Points value</th><td>{event.points_value}</td></tr>
+            {event.category !== 'meeting' && !event.is_required && (
+              <tr><th>RSVP penalty</th><td>{event.rsvp_penalty ? 'Yes (-10)' : 'None'}</td></tr>
+            )}
             <tr><th>RSVP cap</th><td>{event.capacity ? `${rsvps.filter((r) => r.status === 'going').length} / ${event.capacity}` : 'Unlimited'}</td></tr>
             <tr><th>Status</th><td><span className={`status-badge ${event.status}`}>{event.status}</span></td></tr>
           </tbody>
@@ -543,8 +561,11 @@ export default function EventDetail() {
             event.category === 'meeting'
               ? `This locks in attendance for "${event.name}". This cannot be undone from the UI.`
               : `This locks in attendance for "${event.name}": brothers who checked in earn ${event.points_value} ` +
-                'point(s), and anyone who RSVPed "going" but never checked in gets a 10-point no-show penalty. ' +
-                'This cannot be undone from the UI.'
+                'point(s)' +
+                (event.rsvp_penalty
+                  ? ', and anyone who RSVPed "going" but never checked in gets a 10-point no-show penalty.'
+                  : '.') +
+                ' This cannot be undone from the UI.'
           }
           confirmLabel="Mark complete"
           busy={busy}

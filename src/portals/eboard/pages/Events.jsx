@@ -18,6 +18,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
   const [category, setCategory] = useState('professional')
   const [pointsValue, setPointsValue] = useState(0)
   const [isRequired, setIsRequired] = useState(false)
+  const [rsvpPenalty, setRsvpPenalty] = useState(false)
   const [location, setLocation] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [durationMinutes, setDurationMinutes] = useState(120)
@@ -34,6 +35,7 @@ function AddEventForm({ semester, onClose, onAdded }) {
         category,
         points_value: Number(pointsValue) || 0,
         is_required: isRequired,
+        rsvp_penalty: rsvpPenalty && !isRequired && category !== 'meeting',
         location: location || null,
         starts_at: new Date(startsAt).toISOString(),
         capacity: capacity ? Number(capacity) : null,
@@ -148,6 +150,19 @@ function AddEventForm({ semester, onClose, onAdded }) {
             />
             <label htmlFor="is_required" style={{ marginBottom: 0 }}>Required event</label>
           </div>
+          {!isRequired && category !== 'meeting' && (
+            <div className="form-field checkbox">
+              <input
+                id="rsvp_penalty"
+                type="checkbox"
+                checked={rsvpPenalty}
+                onChange={(e) => setRsvpPenalty(e.target.checked)}
+              />
+              <label htmlFor="rsvp_penalty" style={{ marginBottom: 0 }}>
+                Add RSVP penalty (-10 for cancelling within 24h or not showing up after RSVPing)
+              </label>
+            </div>
+          )}
         </div>
         <div className="modal-actions">
           <button type="submit" className="btn" disabled={submitting}>
@@ -438,8 +453,11 @@ export default function Events() {
             completeTarget.category === 'meeting'
               ? `This locks in attendance for "${completeTarget.name}". This cannot be undone from the UI.`
               : `This locks in attendance for "${completeTarget.name}": brothers who checked in earn ` +
-                `${completeTarget.points_value} point(s), and anyone who RSVPed "going" but never checked in gets ` +
-                'a 10-point no-show penalty. This cannot be undone from the UI.'
+                `${completeTarget.points_value} point(s)` +
+                (completeTarget.rsvp_penalty
+                  ? ', and anyone who RSVPed "going" but never checked in gets a 10-point no-show penalty.'
+                  : '.') +
+                ' This cannot be undone from the UI.'
           }
           confirmLabel="Mark complete"
           busy={busyEventId === completeTarget.id}
