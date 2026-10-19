@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { createSignedUrlCache } from './signedUrlCache'
+import { createReadThroughCache } from './readThroughCache'
 
 // Shared between the public Apply form and the recruitment portal's
 // deliberation dashboard. Field set + options mirror the chapter's Google
@@ -40,24 +42,45 @@ export function newApplicationId() {
   return crypto.randomUUID()
 }
 
-async function uploadFile(applicationId, kind, file) {
-  const ext = file.name.split('.').pop()
-  const path = `${applicationId}/${kind}.${ext}`
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+// Immutable-path uploads: never `upsert`, so a cached copy can never go stale.
+// Variants get a one-year Cache-Control (the Storage default is 1 hour).
+const IMMUTABLE_FILE_CACHE_CONTROL_SECONDS = '31536000'
+
+async function uploadFileAtStoragePath(storagePath, file) {
+  const { error } = await supabase.storage.from(BUCKET).upload(storagePath, file, {
     contentType: file.type,
+    cacheControl: IMMUTABLE_FILE_CACHE_CONTROL_SECONDS,
     upsert: false,
   })
   if (error) throw error
-  return path
+  return storagePath
+}
+
+async function uploadFile(applicationId, kind, file) {
+  const ext = file.name.split('.').pop()
+  return uploadFileAtStoragePath(`${applicationId}/${kind}.${ext}`, file)
+}
+
+// Thumbnail / display variants are an optimisation: if one fails to upload the
+// application is still valid, the path stays null and the UI falls back.
+async function uploadOptionalHeadshotVariant(applicationId, variantName, file) {
+  if (!file) return null
+  try {
+    return await uploadFileAtStoragePath(`${applicationId}/headshot-${variantName}.jpg`, file)
+  } catch {
+    return null
+  }
 }
 
 export async function submitApplication(fields, files) {
   const id = newApplicationId()
 
-  const [resumePath, coverLetterPath, headshotPath] = await Promise.all([
+  const [resumePath, coverLetterPath, headshotPath, headshotThumbnailPath, headshotDisplayPath] = await Promise.all([
     uploadFile(id, 'resume', files.resume),
     uploadFile(id, 'cover-letter', files.coverLetter),
     uploadFile(id, 'headshot', files.headshot),
+    uploadOptionalHeadshotVariant(id, 'thumbnail-256', files.headshotThumbnail),
+    uploadOptionalHeadshotVariant(id, 'display-1024', files.headshotDisplay),
   ])
 
   const { error } = await supabase.from('rush_applications').insert({
@@ -75,6 +98,8 @@ export async function submitApplication(fields, files) {
     resume_path: resumePath,
     cover_letter_path: coverLetterPath,
     headshot_path: headshotPath,
+    headshot_thumbnail_path: headshotThumbnailPath,
+    headshot_display_path: headshotDisplayPath,
     ever_transferred: fields.everTransferred === 'Yes',
     transfer_from_details: fields.transferFromDetails?.trim() || null,
     plans_to_transfer: fields.plansToTransfer,
@@ -90,19 +115,41 @@ export async function submitApplication(fields, files) {
   return id
 }
 
-export async function getSignedFileUrl(path) {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 10)
-  if (error) throw error
-  return data.signedUrl
-}
+// One signed URL per storage path for the whole page session (1 hour, renewed
+// only inside the last 5 minutes). See signedUrlCache.js for why.
+const applicationFileSignedUrlCache = createSignedUrlCache({
+  createSignedUrlsForStoragePaths: async (storagePaths, lifetimeSeconds) => {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(storagePaths, lifetimeSeconds)
+    if (error) throw error
+    return data
+  },
+})
 
-export async function listApplications() {
-  const { data, error } = await supabase
-    .from('rush_applications')
-    .select('id, full_name, standing, graduation_year, headshot_path, created_at')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data || []
+export const getSignedFileUrl = applicationFileSignedUrlCache.getSignedUrlForStoragePath
+export const getSignedFileUrls = applicationFileSignedUrlCache.getSignedUrlsForStoragePaths
+
+// Heavy, rarely-changing reads (applicant list, one application's answers) are
+// cached for 5 minutes. Votes, comments and decisions are NOT cached here.
+const applicationDataCache = createReadThroughCache()
+const APPLICANT_LIST_CACHE_KEY = 'applicant-list'
+const applicationCacheKey = (applicationId) => `application:${applicationId}`
+
+// List view columns only: no essays, no free text, no file contents.
+const APPLICANT_LIST_COLUMNS = 'id, full_name, standing, graduation_year, headshot_thumbnail_path, created_at'
+
+export function listApplications({ forceRefresh = false } = {}) {
+  return applicationDataCache.readThrough(
+    APPLICANT_LIST_CACHE_KEY,
+    async () => {
+      const { data, error } = await supabase
+        .from('rush_applications')
+        .select(APPLICANT_LIST_COLUMNS)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
+    },
+    { forceRefresh },
+  )
 }
 
 // Voting is anonymous — rush_application_votes RLS only ever returns the
@@ -131,10 +178,26 @@ export async function getDecisions() {
   return new Map((data || []).map((row) => [row.application_id, row.decision]))
 }
 
-export async function getApplication(id) {
-  const { data, error } = await supabase.from('rush_applications').select('*').eq('id', id).single()
-  if (error) throw error
-  return data
+// Everything the detail page renders; explicit so new columns never ship by accident.
+const APPLICATION_DETAIL_COLUMNS = [
+  'id', 'full_name', 'pronouns', 'access_id', 'wayne_state_email', 'alternate_email',
+  'standing', 'graduation_year', 'gpa', 'majors', 'minors',
+  'resume_path', 'cover_letter_path', 'headshot_path', 'headshot_display_path',
+  'ever_transferred', 'transfer_from_details', 'plans_to_transfer', 'transfer_to_details',
+  'title_ix_violation', 'felony_conviction', 'how_heard', 'late_class_days', 'additional_comments',
+  'created_at',
+].join(', ')
+
+export function getApplication(id) {
+  return applicationDataCache.readThrough(applicationCacheKey(id), async () => {
+    const { data, error } = await supabase
+      .from('rush_applications')
+      .select(APPLICATION_DETAIL_COLUMNS)
+      .eq('id', id)
+      .single()
+    if (error) throw error
+    return data
+  })
 }
 
 // Soft delete — the row stays in the DB but rush_applications_select (0032)
@@ -144,6 +207,8 @@ export async function getApplication(id) {
 export async function softDeleteApplication(applicationId) {
   const { error } = await supabase.rpc('soft_delete_rush_application', { p_application_id: applicationId })
   if (error) throw error
+  applicationDataCache.invalidate(APPLICANT_LIST_CACHE_KEY)
+  applicationDataCache.invalidate(applicationCacheKey(applicationId))
 }
 
 // Own vote only — RLS never returns another member's row (voting is

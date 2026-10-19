@@ -280,6 +280,8 @@ export default function Apply() {
   const [resume, setResume] = useState(null)
   const [coverLetter, setCoverLetter] = useState(null)
   const [headshot, setHeadshot] = useState(null)
+  const [headshotThumbnail, setHeadshotThumbnail] = useState(null)
+  const [headshotDisplay, setHeadshotDisplay] = useState(null)
   const [headshotProcessing, setHeadshotProcessing] = useState(false)
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -292,10 +294,26 @@ export default function Apply() {
   async function handleHeadshot(file) {
     setError(null)
     setHeadshot(null)
+    setHeadshotThumbnail(null)
+    setHeadshotDisplay(null)
     if (!file) return
     setHeadshotProcessing(true)
     try {
-      setHeadshot(await resizeImage(file))
+      const resizedOriginal = await resizeImage(file)
+      setHeadshot(resizedOriginal)
+      // Smaller variants for the deliberation dashboard (list thumbnail ~256px,
+      // detail view ~1024px). Best-effort: the original above is what the
+      // application depends on.
+      try {
+        const [thumbnailFile, displayFile] = await Promise.all([
+          resizeImage(resizedOriginal, { maxSize: 256, quality: 0.8, maxBytes: 30 * 1024 }),
+          resizeImage(resizedOriginal, { maxSize: 1024, quality: 0.8, maxBytes: 300 * 1024 }),
+        ])
+        setHeadshotThumbnail(thumbnailFile)
+        setHeadshotDisplay(displayFile)
+      } catch {
+        // Leave both null; the portal falls back to initials / the original.
+      }
     } catch {
       setError("We couldn't read that image. Please upload your headshot as a JPEG or PNG.")
     } finally {
@@ -332,7 +350,13 @@ export default function Apply() {
 
     setSubmitting(true)
     try {
-      await submitApplication(fields, { resume, coverLetter, headshot })
+      await submitApplication(fields, {
+        resume,
+        coverLetter,
+        headshot,
+        headshotThumbnail,
+        headshotDisplay,
+      })
       setDone(true)
       window.scrollTo({ top: 0 })
     } catch (err) {
