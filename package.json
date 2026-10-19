@@ -12,7 +12,8 @@
     "seed:eboard": "node --env-file=.env.local scripts/seed-eboard.mjs",
     "seed:recruitment": "node --env-file=.env.local scripts/seed-recruitment.mjs",
     "unseed:recruitment": "node --env-file=.env.local scripts/unseed-recruitment.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "backfill:headshot-variants": "node scripts/backfill-headshot-variants.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "sharp": "^0.35.5",
     "vite": "^5.4.8"
   }
 }
