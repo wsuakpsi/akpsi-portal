@@ -76,3 +76,22 @@ Inputs: N = 100 applicants, 15 devices, 40 detail opens per device, headshot 300
 Reduction: 5.6 GB → ≤ 1.1 GB worst case (5×), ~0.23 GB when PDFs are rarely opened (25×).
 
 Not verified in a browser (see report): the "~0 bytes on revisit" claim depends on the browser honouring the cache headers on signed-URL responses.
+
+## Measured on the local Supabase stack (fake data)
+
+Setup: Colima + local Supabase (migrations 0001–0041 replayed; one stub for the out-of-repo `pending_invites` table and Supabase's default role grants had to be added locally, in a scratch copy, not in the repo). 100 fake applicants (`scripts/seed-local-egress-fixture.mjs`): headshot **2.19 MB** (not 3 MB), resume 1.00 MB, cover letter 0.50 MB. Bytes are response sizes from the Kong gateway log (the browser's `transferSize` reads 0 for cross-origin responses). Same fixture, same browser, E-Board login, baseline = commit `966795f`, after = this branch (after running `backfill-headshot-variants.mjs --apply` on the local stack: 100 ok, rerun reports 0 pending).
+
+| Scenario | Before | After |
+|---|---|---|
+| Open list (100 applicants) | **218.7 MB** (100 × 2.19 MB headshots + 200 signing calls) | **0.05 MB** (first screen: 12 thumbs, 1 batched signing call) |
+| Scroll through the rest of the list | n/a (already loaded) | thumbnails fetched only as cards scroll in (≈1.5 KB each in the fixture; ≤ 30 KB cap in production) |
+| Filter, then clear filter | 0 (client-side) | no signing, no repeat of thumbs already fetched |
+| Open one applicant | 2.24 MB (re-downloads the headshot with a new URL) | **0.02 MB** (display headshot only; 1 signing call) |
+| Click Resume | 1.00 MB | 1.00 MB, signed and fetched only on click |
+| Back to list (in-session) | **218.7 MB again** | **0 file bytes, 0 signing calls**; the applicant list is served from cache. Three tiny live-state calls (tallies, decisions, maybe-setting) still run. |
+
+Caveats: fixture thumbnails are ~1.5 KB because the synthetic images are smooth, so real thumbnails will be larger (budget 30 KB, so ≤ 3 MB for all 100). Not measured: browser-cache behaviour on revisits after the 1-hour URL expiry, Safari/mobile, a real 15-device session, and production file sizes. The StrictMode double-invocation in the dev server doubles some API calls; a production build does not.
+
+### Modeled whole-delib total, using the fixture's own sizes
+Before: per device 12 list loads × 218.7 MB + 40 opens × 2.24 MB ≈ 2.7 GB → × 15 devices ≈ 40 GB. (That is far above the observed ~5 GB, so production headshots are smaller than the fixture's, or there were fewer list loads. The ratio is what matters.)
+After, worst case (every open also views resume + cover letter): per device 3 MB (all thumbs) + 40 × 0.3 MB (display cap) + 40 × 1.5 MB (PDFs) = 75 MB → × 15 = **1.1 GB**. Without PDF views ≈ 15 MB × 15 = 0.23 GB.
