@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "seed:eboard": "node --env-file=.env.local scripts/seed-eboard.mjs",
     "seed:recruitment": "node --env-file=.env.local scripts/seed-recruitment.mjs",
-    "unseed:recruitment": "node --env-file=.env.local scripts/unseed-recruitment.mjs"
+    "unseed:recruitment": "node --env-file=.env.local scripts/unseed-recruitment.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
