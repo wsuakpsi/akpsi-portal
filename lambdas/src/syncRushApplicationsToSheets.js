@@ -4,6 +4,16 @@ import { getSheetsClient } from './lib/googleSheetsClient.js';
 
 const SHEET_TITLE = 'Applications';
 
+// Only the columns written to the sheet. File paths (resume, cover letter,
+// headshot and variants) are never read: this job must never touch file bytes.
+const APPLICATION_COLUMNS_WRITTEN_TO_SHEET = [
+  'id', 'full_name', 'pronouns', 'access_id', 'wayne_state_email', 'alternate_email',
+  'standing', 'graduation_year', 'gpa', 'majors', 'minors',
+  'ever_transferred', 'transfer_from_details', 'plans_to_transfer', 'transfer_to_details',
+  'title_ix_violation', 'felony_conviction', 'how_heard', 'late_class_days',
+  'additional_comments', 'created_at',
+].join(', ');
+
 const SHEET_COLUMNS = [
   'Name',
   'Pronouns',
@@ -42,7 +52,7 @@ export async function syncRushApplicationsToSheets() {
   const supabase = getSupabaseClient();
 
   const [applicationsRes, votesRes, commentsRes, decisionsRes] = await Promise.all([
-    supabase.from('rush_applications').select('*').order('created_at', { ascending: true }),
+    supabase.from('rush_applications').select(APPLICATION_COLUMNS_WRITTEN_TO_SHEET).order('created_at', { ascending: true }),
     supabase.from('rush_application_votes').select('application_id, vote'),
     supabase.from('rush_application_comments').select('application_id'),
     supabase.from('rush_application_decisions').select('application_id, decision'),
