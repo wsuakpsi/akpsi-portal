@@ -488,6 +488,14 @@
   transition: border-color 0.15s, background 0.15s;
 }
 
+button.detail-doc {
+  width: 100%;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .detail-doc:hover {
   border-color: var(--navy);
   background: var(--bg);

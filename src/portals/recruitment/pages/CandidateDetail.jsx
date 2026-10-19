@@ -72,7 +72,8 @@ export default function CandidateDetail({ profile }) {
   const [myVote, setMyVote] = useState(null)
   const [tally, setTally] = useState({ yes: 0, no: 0, maybe: 0 })
   const [comments, setComments] = useState([])
-  const [files, setFiles] = useState({})
+  const [headshotDisplaySignedUrl, setHeadshotDisplaySignedUrl] = useState(null)
+  const [openingDocumentStoragePath, setOpeningDocumentStoragePath] = useState(null)
   const [commentText, setCommentText] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -112,6 +113,7 @@ export default function CandidateDetail({ profile }) {
     async function load() {
       setLoading(true)
       setError(null)
+      setHeadshotDisplaySignedUrl(null)
       try {
         const [app, mine, t, commentRows, decisionValue] = await Promise.all([
           getApplication(id),
@@ -130,12 +132,11 @@ export default function CandidateDetail({ profile }) {
         setComments(commentRows)
         setDecisionState(decisionValue)
 
-        const [resumeUrl, coverLetterUrl, headshotUrl] = await Promise.all([
-          getSignedFileUrl(app.resume_path),
-          getSignedFileUrl(app.cover_letter_path),
-          getSignedFileUrl(app.headshot_path),
-        ])
-        if (!cancelled) setFiles({ resume: resumeUrl, coverLetter: coverLetterUrl, headshot: headshotUrl })
+        // Only the display-size headshot loads with the page (falls back to the
+        // original for applications that predate variants). Resume and cover
+        // letter are signed and opened only when clicked.
+        const headshotDisplaySignedUrl = await getSignedFileUrl(app.headshot_display_path || app.headshot_path)
+        if (!cancelled) setHeadshotDisplaySignedUrl(headshotDisplaySignedUrl)
       } catch (err) {
         if (!cancelled) {
           setError(err.message)
@@ -171,6 +172,27 @@ export default function CandidateDetail({ profile }) {
   const siblingIndex = siblingIds ? siblingIds.indexOf(id) : -1
   const prevId = siblingIndex > 0 ? siblingIds[siblingIndex - 1] : null
   const nextId = siblingIndex !== -1 && siblingIndex < (siblingIds?.length ?? 0) - 1 ? siblingIds[siblingIndex + 1] : null
+
+  // Opens the PDF in a new tab. The tab is opened synchronously (inside the
+  // click) so popup blockers allow it, then pointed at the signed URL once it
+  // is ready. The URL comes from the session cache, so re-opening the same
+  // document reuses the identical URL and the browser's cached copy.
+  async function handleOpenDocument(documentStoragePath) {
+    setOpeningDocumentStoragePath(documentStoragePath)
+    const newTab = window.open('', '_blank')
+    if (newTab) newTab.opener = null
+    try {
+      const documentSignedUrl = await getSignedFileUrl(documentStoragePath)
+      if (!documentSignedUrl) throw new Error('File not found')
+      if (newTab) newTab.location.href = documentSignedUrl
+      else window.open(documentSignedUrl, '_blank', 'noopener')
+    } catch (err) {
+      if (newTab) newTab.close()
+      toast.error(`Could not open file: ${err.message}`)
+    } finally {
+      setOpeningDocumentStoragePath(null)
+    }
+  }
 
   async function handleVote(vote) {
     setBusy(true)
@@ -267,8 +289,8 @@ export default function CandidateDetail({ profile }) {
       <div className="detail-layout">
         <aside className="detail-side">
           <div className="card">
-            {files.headshot ? (
-              <img className="detail-avatar" src={files.headshot} alt="" />
+            {headshotDisplaySignedUrl ? (
+              <img className="detail-avatar" src={headshotDisplaySignedUrl} alt="" width={1024} height={1024} decoding="async" />
             ) : (
               <div className="detail-avatar-fallback">{initials(application.full_name)}</div>
             )}
@@ -286,12 +308,20 @@ export default function CandidateDetail({ profile }) {
               Submitted {formatSubmitted(application.created_at)}
             </div>
             <div className="detail-docs">
-              <a className="detail-doc" href={files.resume} target="_blank" rel="noreferrer">
-                <DocIcon /> Resume <span>PDF</span>
-              </a>
-              <a className="detail-doc" href={files.coverLetter} target="_blank" rel="noreferrer">
-                <DocIcon /> Cover letter <span>PDF</span>
-              </a>
+              {[
+                ['Resume', application.resume_path],
+                ['Cover letter', application.cover_letter_path],
+              ].map(([documentLabel, documentStoragePath]) => (
+                <button
+                  type="button"
+                  className="detail-doc"
+                  key={documentLabel}
+                  disabled={openingDocumentStoragePath === documentStoragePath}
+                  onClick={() => handleOpenDocument(documentStoragePath)}
+                >
+                  <DocIcon /> {documentLabel} <span>PDF</span>
+                </button>
+              ))}
             </div>
             {isEboard && (
               <button
