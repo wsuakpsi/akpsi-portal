@@ -60,3 +60,19 @@ group by 1;
 ```
 
 Also unknown: the real applicant count and the number of list loads per device in delib 1. The ~5.4 GB model above is a plausibility check, not a measurement.
+
+## Modeled before / after (arithmetic, not measurement)
+
+Inputs: N = 100 applicants, 15 devices, 40 detail opens per device, headshot 300 KB (current, ≤1200 px), thumbnail ≤ 30 KB (assume 20 KB typical), display ≤ 300 KB, resume 1 MB, cover letter 0.5 MB, ~12 list loads per device (assumption fitted to the observed ~5 GB).
+
+**Before** per device: list 12 × (100 × 0.3 MB) = 360 MB; detail 40 × 0.3 MB = 12 MB; total ≈ 372 MB. × 15 devices ≈ **5.6 GB** (observed delib 1: ~5 GB).
+
+**After** per device:
+- List: 100 × 20 KB = 2.0 MB once (≤ 3.0 MB at the 30 KB cap), then 0 B for every re-visit/sort/filter/refresh (identical URLs, 1-year Cache-Control). List JSON ≈ 15 KB, cached 5 min.
+- Detail: 40 × ≤ 0.3 MB = ≤ 12 MB (less if display images are ~150 KB; revisits are cache hits).
+- PDFs, only on click, worst case every open views both: 40 × 1.5 MB = 60 MB.
+- Worst-case per device ≈ 3 + 12 + 60 = 75 MB → × 15 = **1.1 GB**. Without PDF clicks: ≈ 15 MB × 15 = **225 MB**.
+
+Reduction: 5.6 GB → ≤ 1.1 GB worst case (5×), ~0.23 GB when PDFs are rarely opened (25×).
+
+Not verified in a browser (see report): the "~0 bytes on revisit" claim depends on the browser honouring the cache headers on signed-URL responses.
