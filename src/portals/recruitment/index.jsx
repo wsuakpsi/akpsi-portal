@@ -1,11 +1,17 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import './recruitment.css'
 import { signOut } from '../../lib/auth'
+import { startDevEgressMeter } from '../../lib/devEgressMeter'
 import { CrestIcon } from '../../components/AuthShell'
 import Candidates from './pages/Candidates'
 import CandidateDetail from './pages/CandidateDetail'
 
 export default function RecruitmentRouter({ profile }) {
+  useEffect(() => {
+    startDevEgressMeter()
+  }, [])
+
   return (
     <div className="recruitment-app">
       <header className="recruitment-topbar">

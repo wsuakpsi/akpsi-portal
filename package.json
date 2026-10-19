@@ -13,7 +13,8 @@
     "seed:recruitment": "node --env-file=.env.local scripts/seed-recruitment.mjs",
     "unseed:recruitment": "node --env-file=.env.local scripts/unseed-recruitment.mjs",
     "test": "node --test tests/*.test.mjs",
-    "backfill:headshot-variants": "node scripts/backfill-headshot-variants.mjs"
+    "backfill:headshot-variants": "node scripts/backfill-headshot-variants.mjs",
+    "check:egress": "node scripts/check-no-select-star.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
