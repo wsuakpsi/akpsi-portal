@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { initials } from '../../../lib/queries'
@@ -9,18 +9,59 @@ import {
   listApplications,
   getVoteTallies,
   getDecisions,
-  getSignedFileUrl,
   resetAllVotes,
   getMaybeEnabled,
   setMaybeEnabled,
   subscribeToMaybeSetting,
 } from '../../../lib/applications'
+import { useVisibleThumbnailSignedUrls } from '../useVisibleThumbnailSignedUrls'
 
 const RUSH_SHEETS_SYNC_URL = import.meta.env.VITE_RUSH_SHEETS_SYNC_URL
 
-function CandidateAvatar({ application, url }) {
-  if (url) return <img className="candidate-avatar" src={url} alt="" />
-  return <div className="candidate-avatar-fallback">{initials(application.full_name)}</div>
+const CANDIDATE_CARDS_PER_PAGE = 48
+const THUMBNAIL_EDGE_PIXELS = 256
+
+// Only cards that scroll near the viewport ask for their thumbnail.
+function CandidateCard({ application, thumbnailSignedUrl, requestThumbnailSignedUrl, children }) {
+  const cardElementRef = useRef(null)
+
+  useEffect(() => {
+    const cardElement = cardElementRef.current
+    if (!application.headshot_thumbnail_path || !cardElement) return undefined
+    if (typeof IntersectionObserver === 'undefined') {
+      requestThumbnailSignedUrl(application.headshot_thumbnail_path)
+      return undefined
+    }
+    const visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return
+        requestThumbnailSignedUrl(application.headshot_thumbnail_path)
+        visibilityObserver.disconnect()
+      },
+      { rootMargin: '300px' },
+    )
+    visibilityObserver.observe(cardElement)
+    return () => visibilityObserver.disconnect()
+  }, [application.headshot_thumbnail_path, requestThumbnailSignedUrl])
+
+  return (
+    <Link className="candidate-card" to={`/recruitment/${application.id}`} ref={cardElementRef}>
+      {thumbnailSignedUrl ? (
+        <img
+          className="candidate-avatar"
+          src={thumbnailSignedUrl}
+          alt=""
+          width={THUMBNAIL_EDGE_PIXELS}
+          height={THUMBNAIL_EDGE_PIXELS}
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <div className="candidate-avatar-fallback">{initials(application.full_name)}</div>
+      )}
+      {children}
+    </Link>
+  )
 }
 
 function SearchIcon() {
@@ -39,14 +80,15 @@ export default function Candidates({ profile }) {
   const [applications, setApplications] = useState([])
   const [tallies, setTallies] = useState(new Map())
   const [decisions, setDecisions] = useState(new Map())
-  const [avatarUrls, setAvatarUrls] = useState({})
+  const [visibleCardCount, setVisibleCardCount] = useState(CANDIDATE_CARDS_PER_PAGE)
+  const { thumbnailSignedUrlByStoragePath, requestThumbnailSignedUrl } = useVisibleThumbnailSignedUrls()
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [maybeEnabled, setMaybeEnabledState] = useState(false)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [resetting, setResetting] = useState(false)
 
-  async function load() {
+  async function load({ forceRefresh = false } = {}) {
     setLoading(true)
     setError(null)
     try {
@@ -55,26 +97,13 @@ export default function Candidates({ profile }) {
       // rather than render an empty-but-present tally/badge that could be
       // misread as "nobody voted" / "no decision".
       const [apps, voteTallies, decisionMap] = await Promise.all([
-        listApplications(),
+        listApplications({ forceRefresh }),
         canSeeVoteResults ? getVoteTallies() : Promise.resolve(new Map()),
         canSeeVoteResults ? getDecisions() : Promise.resolve(new Map()),
       ])
       setApplications(apps)
       setTallies(voteTallies)
       setDecisions(decisionMap)
-
-      const urls = {}
-      await Promise.all(
-        apps.map(async (app) => {
-          if (!app.headshot_path) return
-          try {
-            urls[app.id] = await getSignedFileUrl(app.headshot_path)
-          } catch {
-            // Missing/unreadable file — fall back to initials, not worth failing the page over.
-          }
-        }),
-      )
-      setAvatarUrls(urls)
     } catch (err) {
       setError(err.message)
       toast.error(`Could not load applications: ${err.message}`)
@@ -122,6 +151,12 @@ export default function Candidates({ profile }) {
     return applications.filter((app) => app.full_name.toLowerCase().includes(q))
   }, [applications, search])
 
+  useEffect(() => {
+    setVisibleCardCount(CANDIDATE_CARDS_PER_PAGE)
+  }, [search])
+
+  const currentPageOfCandidates = filtered.slice(0, visibleCardCount)
+
   async function handleSync() {
     setSyncing(true)
     try {
@@ -161,6 +196,18 @@ export default function Candidates({ profile }) {
         )}
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+        <button
+          type="button"
+          className="btn secondary small"
+          onClick={() => load({ forceRefresh: true })}
+          disabled={loading}
+          title="The applicant list is cached for 5 minutes to save bandwidth; use this to pick up brand-new applications."
+        >
+          Refresh list
+        </button>
+      </div>
+
       <div className="recruitment-search-wrap">
         <SearchIcon />
         <input
@@ -179,12 +226,16 @@ export default function Candidates({ profile }) {
 
       {!loading && filtered.length > 0 && (
         <div className="candidate-grid">
-          {filtered.map((app) => {
+          {currentPageOfCandidates.map((app) => {
             const t = tallies.get(app.id) || { yes: 0, no: 0, maybe: 0 }
             const decision = decisions.get(app.id) || 'pending'
             return (
-              <Link className="candidate-card" to={`/recruitment/${app.id}`} key={app.id}>
-                <CandidateAvatar application={app} url={avatarUrls[app.id]} />
+              <CandidateCard
+                key={app.id}
+                application={app}
+                thumbnailSignedUrl={thumbnailSignedUrlByStoragePath[app.headshot_thumbnail_path]}
+                requestThumbnailSignedUrl={requestThumbnailSignedUrl}
+              >
                 <div className="candidate-body">
                   <div className="candidate-name">{app.full_name}</div>
                   <div className="candidate-meta">{app.standing} · {app.graduation_year}</div>
@@ -199,9 +250,20 @@ export default function Candidates({ profile }) {
                     {decision !== 'pending' && <span className={`status-badge ${decision}`}>{decision}</span>}
                   </div>
                 )}
-              </Link>
+              </CandidateCard>
             )
           })}
+        </div>
+      )}
+      {!loading && filtered.length > visibleCardCount && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => setVisibleCardCount((count) => count + CANDIDATE_CARDS_PER_PAGE)}
+          >
+            Show more ({filtered.length - visibleCardCount} remaining)
+          </button>
         </div>
       )}
     
