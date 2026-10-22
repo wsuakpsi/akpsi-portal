@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
@@ -82,6 +82,14 @@ export default function Attendance({ profile }) {
   const [formsByEvent, setFormsByEvent] = useState({})
   const [excuseTarget, setExcuseTarget] = useState(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const excuseFormRef = useRef(null)
+
+  // The form renders below the meeting lists, so bring it into view when it
+  // opens (and again once loading finishes, since the layout shifts then).
+  useEffect(() => {
+    if (!excuseTarget || loading) return
+    excuseFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [excuseTarget, loading])
 
   // Deep link from the Events pages: /brother/attendance?excuse=<eventId>
   // opens the excuse form for that event (meeting or required event).
@@ -250,14 +258,16 @@ export default function Attendance({ profile }) {
       )}
 
       {excuseTarget && (
-        <ExcuseForm
-          event={excuseTarget}
-          onClose={() => setExcuseTarget(null)}
-          onSubmitted={() => {
-            setExcuseTarget(null)
-            load()
-          }}
-        />
+        <div ref={excuseFormRef}>
+          <ExcuseForm
+            event={excuseTarget}
+            onClose={() => setExcuseTarget(null)}
+            onSubmitted={() => {
+              setExcuseTarget(null)
+              load()
+            }}
+          />
+        </div>
       )}
       </div>
     </div>
