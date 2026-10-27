@@ -345,6 +345,7 @@
 .candidate-avatar,
 .candidate-avatar-fallback {
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   border-radius: 8px;
   object-fit: cover;
@@ -431,6 +432,7 @@
 .detail-avatar,
 .detail-avatar-fallback {
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   border-radius: 10px;
   object-fit: cover;
