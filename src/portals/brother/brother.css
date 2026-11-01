@@ -670,6 +670,12 @@ button {
   margin-bottom: 0.5rem;
 }
 
+.resource-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
 .attend-row {
   display: flex;
   justify-content: space-between;

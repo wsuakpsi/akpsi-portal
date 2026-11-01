@@ -152,6 +152,17 @@ export default function Home({ profile }) {
             </div>
           </div>
         ))}
+
+        <div className="section-head">Resources</div>
+        <a
+          className="attend-card resource-link"
+          href="https://akpsi-alumni-network.vercel.app"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <div className="attend-label">Alumni Network</div>
+          <div className="attend-sub">Connect with AKPsi alumni</div>
+        </a>
         </>
         )}
       </div>
