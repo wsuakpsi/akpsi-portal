@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 
 import { initials } from '../../../lib/queries'
@@ -117,6 +117,11 @@ export default function Topbar({ profile, children }) {
     <div className="topbar">
       <div className="topbar-left">{children}</div>
       <div className="topbar-actions">
+        <NavLink to="/brother/alumni" className="topbar-icon-btn" aria-label="D.A.D. alumni directory" title="D.A.D.">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M22 10 12 5 2 10l10 5 10-5z" /><path d="M6 12v5c3 2 9 2 12 0v-5" />
+          </svg>
+        </NavLink>
         <NotificationBell memberId={profile.id} />
         <Link to="/brother/profile" className="avatar-link" aria-label="Profile">
           {profile.avatar_url ? (

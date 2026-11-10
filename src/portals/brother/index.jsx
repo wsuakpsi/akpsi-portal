@@ -10,6 +10,7 @@ import Roster from './pages/Roster'
 import RosterDetail from './pages/RosterDetail'
 import Profile from './pages/Profile'
 import CheckIn from './pages/CheckIn'
+import Alumni from './pages/Alumni'
 
 export default function BrotherRouter({ profile }) {
   return (
@@ -25,6 +26,7 @@ export default function BrotherRouter({ profile }) {
         <Route path="/brother/roster/:id" element={<RosterDetail profile={profile} />} />
         <Route path="/brother/profile" element={<Profile profile={profile} />} />
         <Route path="/brother/checkin" element={<CheckIn profile={profile} />} />
+        <Route path="/brother/alumni" element={<Alumni profile={profile} />} />
       </Routes>
       <BottomNav />
     </div>

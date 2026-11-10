@@ -14,6 +14,7 @@ import Attendance from './pages/Attendance'
 import Discipline from './pages/Discipline'
 import Semesters from './pages/Semesters'
 import SheetsSync from './pages/SheetsSync'
+import Alumni from './pages/Alumni'
 
 export default function EboardRouter({ profile }) {
   const [badges, setBadges] = useState({})
@@ -60,6 +61,7 @@ export default function EboardRouter({ profile }) {
             <Route path="/eboard/discipline" element={<Discipline />} />
             <Route path="/eboard/semesters" element={<Semesters />} />
             <Route path="/eboard/sync" element={<SheetsSync />} />
+            <Route path="/eboard/alumni" element={<Alumni />} />
           </>
         )}
       </Routes>

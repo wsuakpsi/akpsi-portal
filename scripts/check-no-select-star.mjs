@@ -7,6 +7,10 @@ const pathsToCheck = [
   'src/lib/applications.js',
   'src/pages/Apply.jsx',
   'src/portals/recruitment',
+  'src/portals/brother/pages/Alumni.jsx',
+  'src/portals/eboard/pages/Alumni.jsx',
+  'lambdas/src/syncAlumniFromSheet.js',
+  'lambdas/src/graduateBrothers.js',
   'lambdas/src/syncRushApplicationsToSheets.js',
 ]
 const selectEverythingPattern = /\.select\(\s*(['"`])\*\1\s*\)|\.select\(\s*\)/
