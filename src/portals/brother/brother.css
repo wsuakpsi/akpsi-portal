@@ -318,6 +318,33 @@ button {
   display: block;
 }
 
+.topbar-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cdd6e3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.topbar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.topbar-icon-btn.active {
+  background: rgba(201, 168, 76, 0.22);
+  color: #c9a84c;
+}
+
+.topbar-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .notif-bell-wrap {
   position: relative;
 }
@@ -848,4 +875,156 @@ button {
   .brother-app *::after {
     transition-duration: 0.01ms !important;
   }
+}
+
+/* D.A.D. alumni directory */
+
+.alum-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #e3e3e6;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.alum-search:focus,
+.alum-filters select:focus {
+  outline: 2px solid #c9a84c;
+  outline-offset: 1px;
+}
+
+.alum-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.alum-filters select {
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid #e3e3e6;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #1a1a1a;
+}
+
+.alum-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.alum-clear {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #7a4f00;
+  cursor: pointer;
+}
+
+.alum-card {
+  background: #fff;
+  border: 1px solid #e3e3e6;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.alum-card.open {
+  border-color: #c9a84c;
+}
+
+.alum-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.alum-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.alum-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.alum-role {
+  font-size: 0.78rem;
+  color: #333;
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alum-sub {
+  font-size: 0.7rem;
+  color: #666;
+  margin-top: 0.1rem;
+}
+
+.alum-industry {
+  flex-shrink: 0;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(10, 22, 40, 0.07);
+  color: #0a1628;
+}
+
+.alum-details {
+  padding: 0 0.9rem 0.85rem;
+  border-top: 1px solid #f0f0ee;
+}
+
+.alum-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.alum-action {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #e3e3e6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0a1628;
+  text-decoration: none;
+}
+
+.alum-action.primary {
+  background: #0a1628;
+  border-color: #0a1628;
+  color: #fff;
 }

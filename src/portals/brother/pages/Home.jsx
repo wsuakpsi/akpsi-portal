@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase'
 import { getActiveSemester, formatDateTime, formatDate } from '../lib/queries'
@@ -154,15 +155,10 @@ export default function Home({ profile }) {
         ))}
 
         <div className="section-head">Resources</div>
-        <a
-          className="attend-card resource-link"
-          href="https://akpsi-alumni-network.vercel.app"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <div className="attend-label">Alumni Network</div>
-          <div className="attend-sub">Connect with AKPsi alumni</div>
-        </a>
+        <Link className="attend-card resource-link" to="/brother/alumni">
+          <div className="attend-label">D.A.D. Alumni Network</div>
+          <div className="attend-sub">Find and reach out to Beta Omicron alumni</div>
+        </Link>
         </>
         )}
       </div>
