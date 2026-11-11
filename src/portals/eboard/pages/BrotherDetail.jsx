@@ -477,6 +477,89 @@ function CreateBipForm({ member, createdBy, onClose, onCreated }) {
   )
 }
 
+// Non-meeting events this brother checked in to (the `attendance` table),
+// plus the completed events they didn't show up for. Meetings are tracked
+// separately in meeting_attendance and shown in their own card.
+function EventsAttendedCard({ semester, attendanceRows, completedEvents }) {
+  const [view, setView] = useState('attended') // 'attended' | 'missed'
+  const attendedIds = new Set(attendanceRows.map((row) => row.event_id))
+  const missedEvents = completedEvents.filter((event) => !attendedIds.has(event.id))
+  const attendedCompletedCount = completedEvents.length - missedEvents.length
+  const rate = completedEvents.length > 0 ? Math.round((attendedCompletedCount / completedEvents.length) * 100) : null
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2>Events attended &mdash; {semester ? semester.name : 'active semester'}</h2>
+        <span className="card-subtitle" style={{ margin: 0 }}>
+          {attendedCompletedCount} of {completedEvents.length} completed events
+          {rate !== null && <> &middot; {rate}%</>}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
+        <button
+          type="button"
+          className={`btn small ${view === 'attended' ? '' : 'secondary'}`}
+          aria-pressed={view === 'attended'}
+          onClick={() => setView('attended')}
+        >
+          Attended ({attendanceRows.length})
+        </button>
+        <button
+          type="button"
+          className={`btn small ${view === 'missed' ? '' : 'secondary'}`}
+          aria-pressed={view === 'missed'}
+          onClick={() => setView('missed')}
+        >
+          Missed ({missedEvents.length})
+        </button>
+      </div>
+
+      {view === 'attended' && (
+        <>
+          {attendanceRows.length === 0 && <p className="empty-state">No event check-ins this semester.</p>}
+          {attendanceRows.map((row) => (
+            <div className="list-row" key={row.id}>
+              <div className="list-icon ok">✓</div>
+              <div className="list-row-body">
+                <div className="list-row-title">
+                  <Link to={`/eboard/events/${row.event_id}`}>{row.events.name}</Link>
+                </div>
+                <div className="list-row-sub">
+                  {formatDate(row.events.starts_at)} &middot;{' '}
+                  {row.check_in_method === 'qr_scan' ? 'QR check-in' : 'Manual check-in'}
+                </div>
+              </div>
+              <span className={`pill ${row.events.category}`}>{row.events.category}</span>
+            </div>
+          ))}
+        </>
+      )}
+
+      {view === 'missed' && (
+        <>
+          {missedEvents.length === 0 && <p className="empty-state">Hasn't missed any completed events.</p>}
+          {missedEvents.map((event) => (
+            <div className="list-row" key={event.id}>
+              <div className="list-icon bad">✕</div>
+              <div className="list-row-body">
+                <div className="list-row-title">
+                  <Link to={`/eboard/events/${event.id}`}>{event.name}</Link>
+                </div>
+                <div className="list-row-sub">
+                  {formatDate(event.starts_at)}
+                  {event.is_required && <> &middot; Required</>}
+                </div>
+              </div>
+              <span className={`pill ${event.category}`}>{event.category}</span>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function BrotherDetail({ profile }) {
   const { id } = useParams()
   const [loading, setLoading] = useState(true)
@@ -485,6 +568,8 @@ export default function BrotherDetail({ profile }) {
   const [semester, setSemester] = useState(null)
   const [ledgerRows, setLedgerRows] = useState([])
   const [meetingRows, setMeetingRows] = useState([])
+  const [eventAttendanceRows, setEventAttendanceRows] = useState([])
+  const [completedEvents, setCompletedEvents] = useState([])
   const [bipRows, setBipRows] = useState([])
   const [showBipForm, setShowBipForm] = useState(false)
   const [thresholdApp, setThresholdApp] = useState(null)
@@ -496,7 +581,7 @@ export default function BrotherDetail({ profile }) {
     try {
       const activeSemester = await getActiveSemester()
 
-      const [memberRes, ledgerRes, meetingRes, bipRes, ltaRes] = await Promise.all([
+      const [memberRes, ledgerRes, meetingRes, bipRes, ltaRes, eventAttendanceRes, completedEventsRes] = await Promise.all([
         supabase.from('members').select('*').eq('id', id).single(),
         activeSemester
           ? supabase
@@ -527,9 +612,29 @@ export default function BrotherDetail({ profile }) {
               .limit(1)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
+        // events!inner + the semester filter keeps this to the active
+        // semester server-side instead of pulling every check-in ever.
+        activeSemester
+          ? supabase
+              .from('attendance')
+              .select('id, event_id, check_in_method, events!inner(name, category, starts_at, semester_id)')
+              .eq('member_id', id)
+              .eq('events.semester_id', activeSemester.id)
+          : Promise.resolve({ data: [], error: null }),
+        activeSemester
+          ? supabase
+              .from('events')
+              .select('id, name, category, starts_at, is_required')
+              .eq('semester_id', activeSemester.id)
+              .eq('status', 'completed')
+              .neq('category', 'meeting')
+              .order('starts_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
       ])
 
       if (memberRes.error) throw memberRes.error
+      if (eventAttendanceRes.error) throw eventAttendanceRes.error
+      if (completedEventsRes.error) throw completedEventsRes.error
       if (ledgerRes.error) throw ledgerRes.error
       if (meetingRes.error) throw meetingRes.error
       if (bipRes.error) throw bipRes.error
@@ -543,6 +648,12 @@ export default function BrotherDetail({ profile }) {
       setMember(memberRes.data)
       setLedgerRows(ledgerRes.data || [])
       setMeetingRows(filteredMeetings)
+      setEventAttendanceRows(
+        (eventAttendanceRes.data || [])
+          .filter((row) => row.events && row.events.category !== 'meeting')
+          .sort((a, b) => new Date(b.events.starts_at) - new Date(a.events.starts_at))
+      )
+      setCompletedEvents(completedEventsRes.data || [])
       setBipRows(bipRes.data || [])
       setThresholdApp(ltaRes.data || null)
     } catch (err) {
@@ -750,6 +861,12 @@ export default function BrotherDetail({ profile }) {
               </div>
             ))}
           </div>
+
+          <EventsAttendedCard
+            semester={semester}
+            attendanceRows={eventAttendanceRows}
+            completedEvents={completedEvents}
+          />
 
           <div className="card">
             <div className="card-head">
