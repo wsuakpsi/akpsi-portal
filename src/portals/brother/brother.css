@@ -972,13 +972,44 @@ button {
   font-weight: 600;
 }
 
-.alum-role {
-  font-size: 0.78rem;
-  color: #333;
-  margin-top: 0.1rem;
+.alum-job {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: #1a1a1a;
+}
+
+.alum-job.past {
+  color: #555;
+}
+
+.alum-job-label {
+  flex-shrink: 0;
+  width: 2.1rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7a4f00;
+}
+
+.alum-job.past .alum-job-label {
+  color: #999;
+}
+
+.alum-job-text {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.alum-job + .alum-sub,
+.alum-name + .alum-sub {
+  margin-top: 0.25rem;
 }
 
 .alum-sub {
