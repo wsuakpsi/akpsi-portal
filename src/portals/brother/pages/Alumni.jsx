@@ -52,9 +52,10 @@ function phoneHref(phone) {
 
 function AlumCard({ alum, expanded, onToggle }) {
   const role = headline(alum)
-  const sub = [alum.pledge_class, alum.graduation, alum.city].filter(Boolean).join(' · ')
+  const sub = [alum.pledge_class, alum.graduation].filter(Boolean).join(' – ')
   const details = [
     ['Major', alum.major],
+    ['City', alum.city],
     ['Further education', alum.secondary_education],
     ['Email', alum.email],
     ['Phone', alum.phone],
@@ -67,6 +68,7 @@ function AlumCard({ alum, expanded, onToggle }) {
         <div className="avatar">{initials(alum.full_name)}</div>
         <div className="alum-body">
           <div className="alum-name">{alum.full_name}</div>
+          {sub && <div className="alum-sub">{sub}</div>}
           {role && (
             <div className="alum-job">
               <span className="alum-job-label">Now</span>
@@ -79,7 +81,6 @@ function AlumCard({ alum, expanded, onToggle }) {
               <span className="alum-job-text">{alum.past_employers}</span>
             </div>
           )}
-          {sub && <div className="alum-sub">{sub}</div>}
         </div>
         {alum.industry && <span className="alum-industry">{alum.industry}</span>}
       </button>

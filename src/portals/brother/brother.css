@@ -1007,9 +1007,13 @@ button {
   overflow: hidden;
 }
 
-.alum-job + .alum-sub,
 .alum-name + .alum-sub {
-  margin-top: 0.25rem;
+  margin-top: 0.05rem;
+}
+
+.alum-sub + .alum-job,
+.alum-name + .alum-job {
+  margin-top: 0.4rem;
 }
 
 .alum-sub {
